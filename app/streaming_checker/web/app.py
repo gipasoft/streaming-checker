@@ -293,9 +293,38 @@ def _render_page(
       font-weight: 700;
       text-transform: uppercase;
     }}
+    .badge {{
+      display: inline-flex;
+      align-items: center;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      line-height: 1;
+      padding: 5px 9px;
+      white-space: nowrap;
+    }}
+    .badge-movie {{ background: #e0f2fe; color: #075985; }}
+    .badge-series {{ background: #f3e8ff; color: #6b21a8; }}
+    .change-new {{ background: #dcfce7; color: #166534; }}
+    .change-updated {{ background: #dbeafe; color: #1d4ed8; }}
+    .change-unchanged {{ background: #e5e7eb; color: #374151; }}
+    .change-removed {{ background: #fee2e2; color: #b91c1c; }}
     .processed {{ background: #dff7ee; color: var(--ok); }}
     .skipped {{ background: #fff0d8; color: var(--warning); }}
     .error {{ background: #ffe2df; color: var(--danger); }}
+    .providers {{
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }}
+    .provider-chip {{
+      background: #eef2f7;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      display: inline-block;
+      padding: 4px 8px;
+      white-space: nowrap;
+    }}
     .config-list {{
       display: grid;
       grid-template-columns: minmax(120px, 0.9fr) minmax(0, 1.1fr);
@@ -418,14 +447,14 @@ def _results_table(result: ScanRunResult | None) -> str:
     for arr_result in result.arr_results:
         if not arr_result.enabled:
             rows.append(
-                f"<tr><td>{escape(arr_result.kind)}</td><td>-</td><td>"
+                f"<tr><td>{escape(arr_result.kind)}</td><td>-</td><td>-</td><td>-</td><td>"
                 '<span class="status skipped">disabled</span></td><td>-</td><td>-</td></tr>'
             )
             continue
 
         if not arr_result.items:
             rows.append(
-                f"<tr><td>{escape(arr_result.kind)}</td><td>-</td><td>"
+                f"<tr><td>{escape(arr_result.kind)}</td><td>-</td><td>-</td><td>-</td><td>"
                 '<span class="status processed">empty</span></td><td>-</td><td>Nessun elemento mancante</td></tr>'
             )
             continue
@@ -436,7 +465,9 @@ def _results_table(result: ScanRunResult | None) -> str:
             rows.append(
                 "<tr>"
                 f"<td>{escape(item.kind)}</td>"
+                f"<td>{_media_type_badge(item.media_type)}</td>"
                 f"<td>{escape(item.title)}</td>"
+                f"<td>{_change_status_badge(item.change_status)}</td>"
                 f'<td><span class="status {escape(item.status)}">{escape(item.status)}</span></td>'
                 f"<td>{providers}</td>"
                 f"<td>{escape(message)}</td>"
@@ -444,7 +475,7 @@ def _results_table(result: ScanRunResult | None) -> str:
             )
 
     return (
-        "<table><thead><tr><th>Servizio</th><th>Titolo</th><th>Stato</th>"
+        "<table><thead><tr><th>Servizio</th><th>Tipo</th><th>Titolo</th><th>Cambio</th><th>Stato</th>"
         "<th>Provider</th><th>Messaggio</th></tr></thead><tbody>"
         + "".join(rows)
         + "</tbody></table>"
@@ -467,11 +498,28 @@ def _providers_display(canonical_names: list[str], original_names: list[str]) ->
     if not canonical_names:
         return "-"
 
-    display = escape(", ".join(canonical_names))
+    chips = "".join(f'<span class="provider-chip">{escape(provider)}</span>' for provider in canonical_names)
+    display = f'<span class="providers">{chips}</span>'
     if sorted(canonical_names) != sorted(original_names):
         originals = ", ".join(original_names) if original_names else "-"
         display = f'{display}<span class="debug">TMDB: {escape(originals)}</span>'
     return display
+
+
+def _media_type_badge(media_type: str) -> str:
+    css_class = "badge-series" if media_type == "series" else "badge-movie"
+    return f'<span class="badge {css_class}">{escape(media_type)}</span>'
+
+
+def _change_status_badge(change_status: str) -> str:
+    normalized = change_status.upper()
+    css_class = {
+        "NEW": "change-new",
+        "UPDATED": "change-updated",
+        "UNCHANGED": "change-unchanged",
+        "REMOVED": "change-removed",
+    }.get(normalized, "change-unchanged")
+    return f'<span class="badge {css_class}">{escape(normalized)}</span>'
 
 
 def _provider_statistics(result: ScanRunResult | None) -> str:

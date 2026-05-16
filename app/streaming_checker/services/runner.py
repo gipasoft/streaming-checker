@@ -18,8 +18,10 @@ from streaming_checker.storage.sqlite import SQLiteStorage
 @dataclass(frozen=True)
 class ScanItemResult:
     kind: str
+    media_type: str
     title: str
     status: str
+    change_status: str = "UNCHANGED"
     providers: list[str] = field(default_factory=list)
     provider_slugs: list[str] = field(default_factory=list)
     provider_categories: list[str] = field(default_factory=list)
@@ -227,6 +229,7 @@ class ScanRunner:
             if normalized_providers is None:
                 return ScanItemResult(
                     kind=client.kind,
+                    media_type=self._media_type(client.kind),
                     title=item.title,
                     status="skipped",
                     message="missing tmdbId/tvdbId mapping",
@@ -243,8 +246,10 @@ class ScanRunner:
                 message = f"{message}; ntfy send failed" if message else "ntfy send failed"
             return ScanItemResult(
                 kind=client.kind,
+                media_type=self._media_type(client.kind),
                 title=item.title,
                 status="processed",
+                change_status=change.status if change else "UNCHANGED",
                 providers=providers,
                 provider_slugs=[provider.slug for provider in normalized_providers],
                 provider_categories=self._provider_categories(normalized_providers),
@@ -261,6 +266,7 @@ class ScanRunner:
             print(f"[{client.kind}] ERROR processing {item.title}: {exc}")
             return ScanItemResult(
                 kind=client.kind,
+                media_type=self._media_type(client.kind),
                 title=item.title,
                 status="error",
                 message=str(exc),
@@ -305,4 +311,12 @@ class ScanRunner:
     @staticmethod
     def _provider_categories(providers: list[NormalizedProvider]) -> list[str]:
         return sorted(provider.category for provider in providers if provider.category)
+
+    @staticmethod
+    def _media_type(kind: str) -> str:
+        if kind == "radarr":
+            return "movie"
+        if kind == "sonarr":
+            return "series"
+        return kind
 

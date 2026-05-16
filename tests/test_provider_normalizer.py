@@ -58,6 +58,7 @@ class ProviderNormalizerTest(unittest.TestCase):
                     items=[
                         ScanItemResult(
                             kind="radarr",
+                            media_type="movie",
                             title="One",
                             status="processed",
                             providers=["Amazon Prime Video"],
@@ -65,6 +66,7 @@ class ProviderNormalizerTest(unittest.TestCase):
                         ),
                         ScanItemResult(
                             kind="radarr",
+                            media_type="movie",
                             title="Two",
                             status="processed",
                             providers=["Amazon Prime Video", "Netflix"],

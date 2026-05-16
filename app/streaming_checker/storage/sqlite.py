@@ -27,6 +27,16 @@ class AvailabilityChange:
     changed: bool = False
     notification_created: bool = False
 
+    @property
+    def status(self) -> str:
+        if not self.previous_known:
+            return "NEW" if self.current_providers else "UNCHANGED"
+        if self.previous_providers and not self.current_providers:
+            return "REMOVED"
+        if self.changed:
+            return "UPDATED"
+        return "UNCHANGED"
+
 
 class SQLiteStorage:
     def __init__(self, database_path: str):

@@ -94,6 +94,8 @@ RUN_SCAN_ON_STARTUP=true
 
 La UI mostra stato scheduler, prossima scansione e ultima scansione. Il bottone manuale resta disponibile e usa lo stesso lock delle scansioni automatiche, quindi due scansioni non si sovrappongono.
 
+La tabella degli ultimi risultati mostra tipo contenuto (`movie`/`series`) e stato cambio provider: `NEW`, `UPDATED`, `UNCHANGED`, `REMOVED`.
+
 ## Normalizzazione provider
 
 I provider TMDB vengono normalizzati in nomi canonici prima di tag, cache, statistiche e UI. Alcuni esempi:
