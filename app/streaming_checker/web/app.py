@@ -254,6 +254,12 @@ def _render_page(
     }}
     .config-list dt {{ color: var(--muted); }}
     .config-list dd {{ margin: 0; overflow-wrap: anywhere; }}
+    .debug {{
+      color: var(--muted);
+      display: block;
+      font-size: 12px;
+      margin-top: 4px;
+    }}
     @media (max-width: 820px) {{
       header, .layout {{ grid-template-columns: 1fr; display: grid; }}
       .grid {{ grid-template-columns: repeat(2, minmax(0, 1fr)); }}
@@ -288,9 +294,15 @@ def _render_page(
         <h2>Ultimi risultati</h2>
         {_results_table(result)}
       </div>
-      <aside class="panel">
-        <h2>Configurazione</h2>
-        {_config_table(summary)}
+      <aside>
+        <div class="panel">
+          <h2>Statistiche provider</h2>
+          {_provider_statistics(result)}
+        </div>
+        <div class="panel" style="margin-top: 18px;">
+          <h2>Configurazione</h2>
+          {_config_table(summary)}
+        </div>
       </aside>
     </section>
   </main>
@@ -342,14 +354,14 @@ def _results_table(result: ScanRunResult | None) -> str:
             continue
 
         for item in arr_result.items:
-            providers = ", ".join(item.providers) if item.providers else "-"
+            providers = _providers_display(item.providers, item.original_provider_names)
             message = item.message or "-"
             rows.append(
                 "<tr>"
                 f"<td>{escape(item.kind)}</td>"
                 f"<td>{escape(item.title)}</td>"
                 f'<td><span class="status {escape(item.status)}">{escape(item.status)}</span></td>'
-                f"<td>{escape(providers)}</td>"
+                f"<td>{providers}</td>"
                 f"<td>{escape(message)}</td>"
                 "</tr>"
             )
@@ -374,6 +386,37 @@ def _config_table(summary: dict[str, str | bool | list[str]]) -> str:
     return '<dl class="config-list">' + "".join(rows) + "</dl>"
 
 
+def _providers_display(canonical_names: list[str], original_names: list[str]) -> str:
+    if not canonical_names:
+        return "-"
+
+    display = escape(", ".join(canonical_names))
+    if sorted(canonical_names) != sorted(original_names):
+        originals = ", ".join(original_names) if original_names else "-"
+        display = f'{display}<span class="debug">TMDB: {escape(originals)}</span>'
+    return display
+
+
+def _provider_statistics(result: ScanRunResult | None) -> str:
+    if result is None or not result.provider_statistics:
+        return '<p class="empty">Nessun dato provider disponibile.</p>'
+
+    provider_rows = "".join(
+        f"<tr><td>{escape(provider)}</td><td>{count}</td></tr>"
+        for provider, count in result.provider_statistics.items()
+    )
+    category_rows = "".join(
+        f"<tr><td>{escape(category)}</td><td>{count}</td></tr>"
+        for category, count in result.provider_category_statistics.items()
+    )
+    categories = (
+        "<h3>Categorie</h3><table><tbody>" + category_rows + "</tbody></table>"
+        if category_rows
+        else ""
+    )
+    return "<table><tbody>" + provider_rows + "</tbody></table>" + categories
+
+
 def _last_scan_text(result: ScanRunResult | None) -> str:
     if result is None:
         return "Nessuna scansione eseguita"
@@ -390,4 +433,7 @@ def last_scan():
     with _state_lock:
         if _last_result is None:
             return {"result": None, "error": _last_error}
-        return {"result": asdict(_last_result), "error": _last_error}
+        payload = asdict(_last_result)
+        payload["provider_statistics"] = _last_result.provider_statistics
+        payload["provider_category_statistics"] = _last_result.provider_category_statistics
+        return {"result": payload, "error": _last_error}

@@ -1,0 +1,25 @@
+PROVIDER_ALIASES: dict[str, str] = {
+    "Amazon Prime Video with Ads": "Amazon Prime Video",
+    "Prime Video": "Amazon Prime Video",
+    "Apple TV Amazon Channel": "Apple TV+",
+    "Apple TV Plus": "Apple TV+",
+    "Paramount+ Amazon Channel": "Paramount+",
+    "Paramount Plus": "Paramount+",
+    "Crunchyroll Amazon Channel": "Crunchyroll",
+    "Disney Plus": "Disney+",
+}
+
+PROVIDER_CLEANUP_SUFFIXES = (
+    " with Ads",
+    " Amazon Channel",
+)
+
+PROVIDER_CATEGORIES: dict[str, str] = {
+    "Amazon Prime Video": "subscription",
+    "Apple TV+": "subscription",
+    "Crunchyroll": "anime",
+    "Disney+": "subscription",
+    "Netflix": "subscription",
+    "Paramount+": "subscription",
+    "RAI Play": "free",
+}

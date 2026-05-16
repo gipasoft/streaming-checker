@@ -9,6 +9,7 @@ from streaming_checker.clients.arr_client import ArrClient, ArrItem
 from streaming_checker.clients.tmdb_client import TmdbClient
 from streaming_checker.core.config import Settings
 from streaming_checker.services.notifications import NtfyNotifier
+from streaming_checker.services.provider_normalizer import NormalizedProvider, ProviderNormalizer
 from streaming_checker.services.scanning import ScanningService
 from streaming_checker.services.tagging import TaggingService
 from streaming_checker.storage.sqlite import SQLiteStorage
@@ -20,6 +21,9 @@ class ScanItemResult:
     title: str
     status: str
     providers: list[str] = field(default_factory=list)
+    provider_slugs: list[str] = field(default_factory=list)
+    provider_categories: list[str] = field(default_factory=list)
+    original_provider_names: list[str] = field(default_factory=list)
     previous_providers: list[str] = field(default_factory=list)
     added_providers: list[str] = field(default_factory=list)
     removed_providers: list[str] = field(default_factory=list)
@@ -61,6 +65,22 @@ class ArrScanResult:
     def notification_sent_count(self) -> int:
         return sum(1 for item in self.items if item.notification_sent)
 
+    @property
+    def provider_statistics(self) -> dict[str, int]:
+        counts: dict[str, int] = {}
+        for item in self.items:
+            for provider in item.providers:
+                counts[provider] = counts.get(provider, 0) + 1
+        return dict(sorted(counts.items()))
+
+    @property
+    def provider_category_statistics(self) -> dict[str, int]:
+        counts: dict[str, int] = {}
+        for item in self.items:
+            for category in item.provider_categories:
+                counts[category] = counts.get(category, 0) + 1
+        return dict(sorted(counts.items()))
+
 
 @dataclass(frozen=True)
 class ScanRunResult:
@@ -101,6 +121,22 @@ class ScanRunResult:
     def notification_sent_count(self) -> int:
         return sum(result.notification_sent_count for result in self.arr_results)
 
+    @property
+    def provider_statistics(self) -> dict[str, int]:
+        counts: dict[str, int] = {}
+        for result in self.arr_results:
+            for provider, count in result.provider_statistics.items():
+                counts[provider] = counts.get(provider, 0) + count
+        return dict(sorted(counts.items()))
+
+    @property
+    def provider_category_statistics(self) -> dict[str, int]:
+        counts: dict[str, int] = {}
+        for result in self.arr_results:
+            for category, count in result.provider_category_statistics.items():
+                counts[category] = counts.get(category, 0) + count
+        return dict(sorted(counts.items()))
+
 
 class ScanRunner:
     def __init__(
@@ -111,12 +147,14 @@ class ScanRunner:
         arr_client_factory: Callable[[str, str, str], ArrClient] = ArrClient,
         storage_factory: Callable[[str], SQLiteStorage] | None = SQLiteStorage,
         notifier_factory: Callable[[Settings], NtfyNotifier] | None = NtfyNotifier,
+        provider_normalizer_factory: Callable[[], ProviderNormalizer] = ProviderNormalizer,
     ):
         self.settings = settings
         self.tmdb_factory = tmdb_factory
         self.arr_client_factory = arr_client_factory
         self.storage = storage_factory(settings.database_path) if storage_factory else None
         self.notifier = notifier_factory(settings) if notifier_factory else None
+        self.provider_normalizer = provider_normalizer_factory()
 
     def run(self) -> ScanRunResult:
         started_at = datetime.now(UTC)
@@ -163,7 +201,7 @@ class ScanRunner:
         items = client.list_missing_monitored()
         print(f"[{client.kind}] missing monitored items: {len(items)}")
 
-        scanner = ScanningService(tmdb, self.settings)
+        scanner = ScanningService(tmdb, self.settings, self.provider_normalizer)
         tagger = TaggingService(self.settings)
         item_results: list[ScanItemResult] = []
 
@@ -185,8 +223,8 @@ class ScanRunner:
         item: ArrItem,
     ) -> ScanItemResult:
         try:
-            providers = scanner.providers_for_item(client.kind, item)
-            if providers is None:
+            normalized_providers = scanner.normalized_providers_for_item(client.kind, item)
+            if normalized_providers is None:
                 return ScanItemResult(
                     kind=client.kind,
                     title=item.title,
@@ -194,6 +232,7 @@ class ScanRunner:
                     message="missing tmdbId/tvdbId mapping",
                 )
 
+            providers = ProviderNormalizer.canonical_names(normalized_providers)
             tagger.apply(client, item, providers)
             change = self.storage.record_availability(client.kind, item, providers) if self.storage else None
             notification_sent = self._send_notification(client.kind, item.title, change)
@@ -207,6 +246,9 @@ class ScanRunner:
                 title=item.title,
                 status="processed",
                 providers=providers,
+                provider_slugs=[provider.slug for provider in normalized_providers],
+                provider_categories=self._provider_categories(normalized_providers),
+                original_provider_names=ProviderNormalizer.original_names(normalized_providers),
                 previous_providers=change.previous_providers if change else [],
                 added_providers=change.added_providers if change else [],
                 removed_providers=change.removed_providers if change else [],
@@ -259,4 +301,8 @@ class ScanRunner:
         except Exception as exc:
             print(f"[ntfy] ERROR sending notification for {title}: {exc}")
             return False
+
+    @staticmethod
+    def _provider_categories(providers: list[NormalizedProvider]) -> list[str]:
+        return sorted(provider.category for provider in providers if provider.category)
 

@@ -12,6 +12,7 @@ Piccolo container Python per controllare se film/serie mancanti in Radarr/Sonarr
   - `streaming-netflix`
   - `streaming-prime-video`
   - `streaming-disney-plus`
+- Normalizza alias e nomi rumorosi dei provider TMDB prima di creare tag/statistiche.
 - Rimuove i tag gestiti quando il contenuto non risulta più disponibile, se `REMOVE_STALE_TAGS=true`.
 - Salva cronologia scansioni, cache disponibilità e storico notifiche in SQLite.
 - Può inviare notifiche ntfy quando cambiano i provider disponibili.
@@ -79,6 +80,18 @@ All'avvio vengono create automaticamente le tabelle SQLite, se mancanti:
 - `scan_history`
 
 La cache confronta i provider dell'ultima scansione con quelli già noti per ogni contenuto e registra una voce di storico solo per stati non già notificati.
+
+## Normalizzazione provider
+
+I provider TMDB vengono normalizzati in nomi canonici prima di tag, cache, statistiche e UI. Alcuni esempi:
+
+- `Amazon Prime Video with Ads` -> `Amazon Prime Video`
+- `Prime Video` -> `Amazon Prime Video`
+- `Apple TV Amazon Channel` -> `Apple TV+`
+- `Paramount+ Amazon Channel` -> `Paramount+`
+- `Crunchyroll Amazon Channel` -> `Crunchyroll`
+
+La UI mantiene anche i nomi originali TMDB come dettaglio di debug quando differiscono dal nome canonico.
 
 ## Notifiche ntfy
 
