@@ -10,8 +10,10 @@ from streaming_checker.services.runner import ArrScanResult, ScanItemResult, Sca
 from streaming_checker.web.app import (
     _change_status_badge,
     _media_type_badge,
+    _provider_badge,
     _providers_display,
     _results_table,
+    _sorted_statistics,
 )
 
 
@@ -25,13 +27,26 @@ class ScanResultsUiTest(unittest.TestCase):
     def test_renders_media_type_badges(self):
         self.assertIn("badge-movie", _media_type_badge("movie"))
         self.assertIn("badge-series", _media_type_badge("series"))
+        self.assertIn("Movie", _media_type_badge("movie"))
+        self.assertIn("Series", _media_type_badge("series"))
 
     def test_provider_display_uses_chips_and_debug_originals(self):
         html = _providers_display(["Amazon Prime Video"], ["Prime Video"])
 
         self.assertIn("provider-chip", html)
+        self.assertIn("provider-prime", html)
         self.assertIn("Amazon Prime Video", html)
         self.assertIn("TMDB: Prime Video", html)
+
+    def test_provider_badge_uses_provider_color_mapping_and_fallback(self):
+        self.assertIn("provider-netflix", _provider_badge("Netflix"))
+        self.assertIn("provider-default", _provider_badge("Unknown Provider"))
+
+    def test_statistics_sort_by_count_descending_then_name(self):
+        self.assertEqual(
+            _sorted_statistics({"Netflix": 2, "Disney+": 4, "Apple TV+": 2}),
+            [("Disney+", 4), ("Apple TV+", 2), ("Netflix", 2)],
+        )
 
     def test_results_table_uses_scroll_wrapper_and_wrapping_message_cell(self):
         now = datetime.now(UTC)

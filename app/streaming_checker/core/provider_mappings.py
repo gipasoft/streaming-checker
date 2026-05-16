@@ -23,3 +23,14 @@ PROVIDER_CATEGORIES: dict[str, str] = {
     "Paramount+": "subscription",
     "RAI Play": "free",
 }
+
+PROVIDER_BADGE_COLORS: dict[str, str] = {
+    "Amazon Prime Video": "prime",
+    "Apple TV+": "apple",
+    "Crunchyroll": "crunchyroll",
+    "Disney+": "disney",
+    "Netflix": "netflix",
+    "Paramount+": "paramount",
+    "RAI Play": "raiplay",
+    "RaiPlay": "raiplay",
+}

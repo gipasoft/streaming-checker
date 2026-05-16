@@ -10,6 +10,7 @@ from fastapi import FastAPI
 from fastapi.responses import HTMLResponse, RedirectResponse
 
 from streaming_checker.core.config import Settings, load_settings
+from streaming_checker.core.provider_mappings import PROVIDER_BADGE_COLORS
 from streaming_checker.services.runner import ScanRunResult
 from streaming_checker.services.scheduler import ScanExecution, ScanSchedulerService, SchedulerStatus
 from streaming_checker.storage import initialize_storage_from_environment
@@ -250,6 +251,34 @@ def _render_page(
     }}
     .metric .value {{ display: block; font-size: 30px; font-weight: 800; }}
     .metric .label {{ color: var(--muted); font-size: 13px; }}
+    .scheduler-card {{
+      margin-bottom: 18px;
+    }}
+    .scheduler-strip {{
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 12px;
+      align-items: center;
+    }}
+    .scheduler-item {{
+      min-width: 0;
+    }}
+    .scheduler-label {{
+      color: var(--muted);
+      display: block;
+      font-size: 11px;
+      font-weight: 700;
+      margin-bottom: 4px;
+      text-transform: uppercase;
+    }}
+    .scheduler-value {{
+      display: block;
+      font-size: 13px;
+      font-weight: 700;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }}
     .layout {{
       display: grid;
       grid-template-columns: minmax(0, 1.6fr) minmax(320px, 0.8fr);
@@ -314,10 +343,10 @@ def _render_page(
       display: inline-flex;
       align-items: center;
       border-radius: 999px;
-      font-size: 12px;
+      font-size: 11px;
       font-weight: 700;
       line-height: 1;
-      padding: 5px 9px;
+      padding: 4px 8px;
       white-space: nowrap;
     }}
     .badge-movie {{ background: #e0f2fe; color: #075985; }}
@@ -340,11 +369,28 @@ def _render_page(
       border: 1px solid var(--line);
       border-radius: 999px;
       display: inline-block;
+      font-size: 13px;
+      font-weight: 700;
       max-width: 100%;
       overflow-wrap: anywhere;
       padding: 4px 8px;
     }}
+    .provider-netflix {{ background: #fee2e2; border-color: #fecaca; color: #b91c1c; }}
+    .provider-disney {{ background: #dbeafe; border-color: #bfdbfe; color: #1d4ed8; }}
+    .provider-prime {{ background: #e0f2fe; border-color: #bae6fd; color: #0369a1; }}
+    .provider-apple {{ background: #e5e7eb; border-color: #d1d5db; color: #111827; }}
+    .provider-paramount {{ background: #dbeafe; border-color: #bfdbfe; color: #1e40af; }}
+    .provider-raiplay {{ background: #dcfce7; border-color: #bbf7d0; color: #166534; }}
+    .provider-crunchyroll {{ background: #ffedd5; border-color: #fed7aa; color: #c2410c; }}
+    .provider-default {{ background: #eef2f7; border-color: var(--line); color: var(--text); }}
     .message-cell, .title-cell {{ overflow-wrap: anywhere; }}
+    .stats-table td:last-child {{
+      font-weight: 800;
+      text-align: right;
+    }}
+    .stats-table td {{
+      padding: 9px 8px;
+    }}
     .config-list {{
       display: grid;
       grid-template-columns: minmax(120px, 0.9fr) minmax(0, 1.1fr);
@@ -358,15 +404,20 @@ def _render_page(
       display: block;
       font-size: 12px;
       margin-top: 4px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }}
     @media (max-width: 820px) {{
       header, .layout {{ grid-template-columns: 1fr; display: grid; }}
       .grid {{ grid-template-columns: repeat(2, minmax(0, 1fr)); }}
+      .scheduler-strip {{ grid-template-columns: repeat(2, minmax(0, 1fr)); }}
       .actions {{ justify-content: start; }}
     }}
     @media (max-width: 520px) {{
       main {{ width: min(100% - 20px, 1120px); padding-top: 20px; }}
       .grid {{ grid-template-columns: 1fr; }}
+      .scheduler-strip {{ grid-template-columns: 1fr; }}
       .results-table th:nth-child(1), .results-table td:nth-child(1) {{ display: none; }}
     }}
   </style>
@@ -435,28 +486,35 @@ def _dashboard(result: ScanRunResult | None) -> str:
 
 def _scheduler_panel(status: SchedulerStatus | None) -> str:
     if status is None:
-        rows = [
+        items = [
             ("Stato", "non disponibile"),
-            ("Prossima scansione", "-"),
-            ("Ultima scansione", "-"),
+            ("Prossima", "-"),
+            ("Ultima", "-"),
+            ("Intervallo", "-"),
+            ("Origine", "-"),
         ]
     else:
         state = "running" if status.running else "stopped"
         if status.scan_running:
-            state = f"{state}, scan in corso"
-        rows = [
+            state = "scan in corso"
+        items = [
             ("Stato", state),
-            ("Intervallo", f"{status.interval_hours:g} ore" if status.interval_hours else "-"),
-            ("Run on startup", str(status.run_scan_on_startup)),
-            ("Prossima scansione", _format_datetime(status.next_scan_at)),
-            ("Ultima scansione", _format_datetime(status.last_scan_at)),
-            ("Ultima origine", status.last_scan_source or "-"),
-            ("Ultimo skip", status.last_skip_reason or "-"),
-            ("Errore scheduler", status.error or "-"),
+            ("Prossima", _format_datetime(status.next_scan_at)),
+            ("Ultima", _format_datetime(status.last_scan_at)),
+            ("Intervallo", f"{status.interval_hours:g}h" if status.interval_hours else "-"),
+            ("Origine", status.last_scan_source or "-"),
         ]
+        if status.last_skip_reason or status.error:
+            items.append(("Nota", status.error or status.last_skip_reason or "-"))
 
-    rendered = "".join(f"<dt>{escape(label)}</dt><dd><code>{escape(value)}</code></dd>" for label, value in rows)
-    return f'<section class="panel" style="margin-bottom: 18px;"><h2>Scheduler</h2><dl class="config-list">{rendered}</dl></section>'
+    rendered = "".join(
+        '<div class="scheduler-item">'
+        f'<span class="scheduler-label">{escape(label)}</span>'
+        f'<span class="scheduler-value">{escape(value)}</span>'
+        "</div>"
+        for label, value in items
+    )
+    return f'<section class="panel scheduler-card"><h2>Scheduler</h2><div class="scheduler-strip">{rendered}</div></section>'
 
 
 def _results_table(result: ScanRunResult | None) -> str:
@@ -518,17 +576,18 @@ def _providers_display(canonical_names: list[str], original_names: list[str]) ->
     if not canonical_names:
         return "-"
 
-    chips = "".join(f'<span class="provider-chip">{escape(provider)}</span>' for provider in canonical_names)
+    chips = "".join(_provider_badge(provider) for provider in canonical_names)
     display = f'<span class="providers">{chips}</span>'
     if sorted(canonical_names) != sorted(original_names):
         originals = ", ".join(original_names) if original_names else "-"
-        display = f'{display}<span class="debug">TMDB: {escape(originals)}</span>'
+        display = f'{display}<span class="debug" title="TMDB: {escape(originals)}">TMDB: {escape(originals)}</span>'
     return display
 
 
 def _media_type_badge(media_type: str) -> str:
     css_class = "badge-series" if media_type == "series" else "badge-movie"
-    return f'<span class="badge {css_class}">{escape(media_type)}</span>'
+    label = "📺 Series" if media_type == "series" else "🎬 Movie"
+    return f'<span class="badge {css_class}">{label}</span>'
 
 
 def _change_status_badge(change_status: str) -> str:
@@ -548,18 +607,27 @@ def _provider_statistics(result: ScanRunResult | None) -> str:
 
     provider_rows = "".join(
         f"<tr><td>{escape(provider)}</td><td>{count}</td></tr>"
-        for provider, count in result.provider_statistics.items()
+        for provider, count in _sorted_statistics(result.provider_statistics)
     )
     category_rows = "".join(
         f"<tr><td>{escape(category)}</td><td>{count}</td></tr>"
-        for category, count in result.provider_category_statistics.items()
+        for category, count in _sorted_statistics(result.provider_category_statistics)
     )
     categories = (
-        "<h3>Categorie</h3><table><tbody>" + category_rows + "</tbody></table>"
+        '<h3>Categorie</h3><table class="stats-table"><tbody>' + category_rows + "</tbody></table>"
         if category_rows
         else ""
     )
-    return "<table><tbody>" + provider_rows + "</tbody></table>" + categories
+    return '<table class="stats-table"><tbody>' + provider_rows + "</tbody></table>" + categories
+
+
+def _provider_badge(provider: str) -> str:
+    provider_class = PROVIDER_BADGE_COLORS.get(provider, "default")
+    return f'<span class="provider-chip provider-{escape(provider_class)}">{escape(provider)}</span>'
+
+
+def _sorted_statistics(statistics: dict[str, int]) -> list[tuple[str, int]]:
+    return sorted(statistics.items(), key=lambda item: (-item[1], item[0].casefold()))
 
 
 def _last_scan_text(result: ScanRunResult | None) -> str:
