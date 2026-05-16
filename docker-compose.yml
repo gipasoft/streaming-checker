@@ -1,9 +1,11 @@
 services:
   streaming-checker:
-    build: .
+    image: ghcr.io/gipasoft/streaming-checker:latest
     container_name: streaming-checker
     env_file:
       - .env
+    ports:
+      - "8080:8080"
     volumes:
       - ./data:/data
     networks:

@@ -58,3 +58,4 @@ def load_settings() -> Settings:
         provider_allowlist=_csv("PROVIDER_ALLOWLIST"),
         offer_types=_csv("OFFER_TYPES", "flatrate,free,ads"),
     )
+

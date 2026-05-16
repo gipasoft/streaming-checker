@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from http_client import HttpClient
+from streaming_checker.clients.http_client import HttpClient
 
 
 @dataclass
@@ -67,7 +67,7 @@ class ArrClient:
             if not movie.get("monitored"):
                 continue
 
-            # In Radarr, movieFile assente/null indica solitamente film mancante.
+            # In Radarr, a missing/null movieFile usually means the movie is missing.
             if movie.get("movieFile"):
                 continue
 
@@ -112,7 +112,16 @@ class ArrClient:
 
         return result
 
-    def update_tags(self, item: ArrItem, desired_tag_labels: set[str], *, generic_tag: str, tag_prefix: str, remove_stale: bool, dry_run: bool):
+    def update_tags(
+        self,
+        item: ArrItem,
+        desired_tag_labels: set[str],
+        *,
+        generic_tag: str,
+        tag_prefix: str,
+        remove_stale: bool,
+        dry_run: bool,
+    ):
         current_ids = set(item.tags)
         desired_ids: set[int] = set()
 
@@ -154,3 +163,4 @@ class ArrClient:
         tags = self.get_tags()
         reverse = {tag_id: label for label, tag_id in tags.items()}
         return [reverse.get(i, f"#{i}") for i in ids]
+

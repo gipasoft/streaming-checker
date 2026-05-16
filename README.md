@@ -28,7 +28,13 @@ Su TMDB: Settings → API → API Read Access Token.
 Copia `.env.example` in `.env` e modifica i valori.
 
 ```bash
-docker compose up --build
+docker compose up -d
+```
+
+La UI web è disponibile su:
+
+```text
+http://localhost:8080
 ```
 
 Per applicare davvero i tag:
@@ -71,3 +77,22 @@ Per Sonarr:
 3. Controlla i log.
 4. Solo dopo metti `DRY_RUN=false`.
 
+## Sviluppo
+
+Il codice applicativo vive nel package `streaming_checker`.
+
+```bash
+python -m unittest discover -s tests
+```
+
+La CLI resta disponibile con:
+
+```bash
+python -m streaming_checker
+```
+
+Nel container puoi eseguire una scansione CLI con:
+
+```bash
+docker compose run --rm streaming-checker python -m streaming_checker
+```

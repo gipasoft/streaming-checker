@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from http_client import HttpClient
+from streaming_checker.clients.http_client import HttpClient
 
 
 class TmdbClient:
@@ -46,3 +46,4 @@ class TmdbClient:
                     names.add(name)
 
         return sorted(names)
+

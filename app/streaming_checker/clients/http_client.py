@@ -29,3 +29,4 @@ class HttpClient:
 
     def put(self, path: str, **kwargs):
         return self.request("PUT", path, **kwargs)
+

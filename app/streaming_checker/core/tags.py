@@ -31,3 +31,4 @@ def desired_tags(
             tags.add(provider_tag(tag_prefix, provider_name))
 
     return tags
+

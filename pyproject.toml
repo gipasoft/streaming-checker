@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "streaming-checker"
+version = "0.1.0"
+description = "Tag missing Radarr and Sonarr items when they are available from TMDB watch providers."
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi==0.115.6",
+    "requests==2.32.3",
+    "uvicorn==0.34.0",
+]
+
+[project.scripts]
+streaming-checker = "streaming_checker.main:main"
+
+[tool.setuptools]
+package-dir = {"" = "app"}
+
+[tool.setuptools.packages.find]
+where = ["app"]
