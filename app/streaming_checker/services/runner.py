@@ -8,6 +8,7 @@ from typing import Callable
 from streaming_checker.clients.arr_client import ArrClient, ArrItem
 from streaming_checker.clients.tmdb_client import TmdbClient
 from streaming_checker.core.config import Settings
+from streaming_checker.services.notifications import NtfyNotifier
 from streaming_checker.services.scanning import ScanningService
 from streaming_checker.services.tagging import TaggingService
 from streaming_checker.storage.sqlite import SQLiteStorage
@@ -24,6 +25,7 @@ class ScanItemResult:
     removed_providers: list[str] = field(default_factory=list)
     providers_changed: bool = False
     notification_created: bool = False
+    notification_sent: bool = False
     message: str | None = None
 
 
@@ -54,6 +56,10 @@ class ArrScanResult:
     @property
     def notification_count(self) -> int:
         return sum(1 for item in self.items if item.notification_created)
+
+    @property
+    def notification_sent_count(self) -> int:
+        return sum(1 for item in self.items if item.notification_sent)
 
 
 @dataclass(frozen=True)
@@ -91,6 +97,10 @@ class ScanRunResult:
     def notification_count(self) -> int:
         return sum(result.notification_count for result in self.arr_results)
 
+    @property
+    def notification_sent_count(self) -> int:
+        return sum(result.notification_sent_count for result in self.arr_results)
+
 
 class ScanRunner:
     def __init__(
@@ -100,11 +110,13 @@ class ScanRunner:
         tmdb_factory: Callable[[str, str], TmdbClient] = TmdbClient,
         arr_client_factory: Callable[[str, str, str], ArrClient] = ArrClient,
         storage_factory: Callable[[str], SQLiteStorage] | None = SQLiteStorage,
+        notifier_factory: Callable[[Settings], NtfyNotifier] | None = NtfyNotifier,
     ):
         self.settings = settings
         self.tmdb_factory = tmdb_factory
         self.arr_client_factory = arr_client_factory
         self.storage = storage_factory(settings.database_path) if storage_factory else None
+        self.notifier = notifier_factory(settings) if notifier_factory else None
 
     def run(self) -> ScanRunResult:
         started_at = datetime.now(UTC)
@@ -184,7 +196,12 @@ class ScanRunner:
 
             tagger.apply(client, item, providers)
             change = self.storage.record_availability(client.kind, item, providers) if self.storage else None
+            notification_sent = self._send_notification(client.kind, item.title, change)
             message = self._change_message(change) if change and change.changed else None
+            if change and change.notification_created and self.notifier and not self.notifier.enabled:
+                message = f"{message}; ntfy disabled" if message else "ntfy disabled"
+            if change and change.notification_created and self.notifier and self.notifier.enabled and not notification_sent:
+                message = f"{message}; ntfy send failed" if message else "ntfy send failed"
             return ScanItemResult(
                 kind=client.kind,
                 title=item.title,
@@ -195,6 +212,7 @@ class ScanRunner:
                 removed_providers=change.removed_providers if change else [],
                 providers_changed=bool(change and change.changed),
                 notification_created=bool(change and change.notification_created),
+                notification_sent=notification_sent,
                 message=message,
             )
         except Exception as exc:
@@ -231,4 +249,14 @@ class ScanRunner:
         if not change.notification_created:
             message = f"{message}; notification already recorded"
         return message
+
+    def _send_notification(self, kind: str, title: str, change) -> bool:
+        if not change or not change.notification_created or not self.notifier:
+            return False
+
+        try:
+            return self.notifier.notify_provider_change(kind=kind, title=title, change=change)
+        except Exception as exc:
+            print(f"[ntfy] ERROR sending notification for {title}: {exc}")
+            return False
 

@@ -43,12 +43,22 @@ class Settings:
     offer_types: list[str]
     database_path: str
 
+    ntfy_url: str | None
+    ntfy_topic: str | None
+    ntfy_token: str | None
+    ntfy_username: str | None
+    ntfy_password: str | None
+    ntfy_priority: str
+    ntfy_tags: list[str]
+
 
 def load_settings() -> Settings:
     token = os.getenv("TMDB_BEARER_TOKEN", "").strip()
     if not token:
         raise RuntimeError("TMDB_BEARER_TOKEN mancante")
     database_path = os.getenv("DATABASE_PATH", default_database_path()).strip() or default_database_path()
+    ntfy_url = os.getenv("NTFY_URL", "").strip().rstrip("/") or None
+    ntfy_topic = os.getenv("NTFY_TOPIC", "").strip() or None
 
     return Settings(
         radarr_url=os.getenv("RADARR_URL", "").rstrip("/") or None,
@@ -67,5 +77,12 @@ def load_settings() -> Settings:
         provider_allowlist=_csv("PROVIDER_ALLOWLIST"),
         offer_types=_csv("OFFER_TYPES", "flatrate,free,ads"),
         database_path=database_path,
+        ntfy_url=ntfy_url,
+        ntfy_topic=ntfy_topic,
+        ntfy_token=os.getenv("NTFY_TOKEN", "").strip() or None,
+        ntfy_username=os.getenv("NTFY_USERNAME", "").strip() or None,
+        ntfy_password=os.getenv("NTFY_PASSWORD", "").strip() or None,
+        ntfy_priority=os.getenv("NTFY_PRIORITY", "default").strip() or "default",
+        ntfy_tags=_csv("NTFY_TAGS", "tv"),
     )
 

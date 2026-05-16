@@ -27,6 +27,13 @@ class WebConfigurationSummaryTest(unittest.TestCase):
             provider_allowlist=["Netflix"],
             offer_types=["flatrate"],
             database_path="data/test.sqlite",
+            ntfy_url="https://user:password@ntfy.example.com/private?token=secret",
+            ntfy_topic="streaming-alerts",
+            ntfy_token="ntfy-secret",
+            ntfy_username="ntfy-user",
+            ntfy_password="ntfy-password",
+            ntfy_priority="high",
+            ntfy_tags=["tv", "movie"],
         )
 
         summary = _configuration_summary(settings)
@@ -35,9 +42,14 @@ class WebConfigurationSummaryTest(unittest.TestCase):
         self.assertEqual(summary["radarr_url"], "http://radarr.local:7878/api")
         self.assertTrue(summary["radarr_api_key_configured"])
         self.assertTrue(summary["tmdb_bearer_token_configured"])
+        self.assertEqual(summary["ntfy_url"], "https://ntfy.example.com/private")
+        self.assertTrue(summary["ntfy_token_configured"])
+        self.assertTrue(summary["ntfy_basic_auth_configured"])
         self.assertNotIn("radarr-secret", summary_text)
         self.assertNotIn("sonarr-secret", summary_text)
         self.assertNotIn("tmdb-secret", summary_text)
+        self.assertNotIn("ntfy-secret", summary_text)
+        self.assertNotIn("ntfy-password", summary_text)
         self.assertNotIn("password", summary_text)
 
 

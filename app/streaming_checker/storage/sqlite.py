@@ -19,6 +19,7 @@ SCHEMA_VERSION = 1
 @dataclass(frozen=True)
 class AvailabilityChange:
     media_key: str
+    previous_known: bool = False
     previous_providers: list[str] = field(default_factory=list)
     current_providers: list[str] = field(default_factory=list)
     added_providers: list[str] = field(default_factory=list)
@@ -58,7 +59,8 @@ class SQLiteStorage:
 
             previous_providers = self._decode_providers(row["providers_json"]) if row else []
             previous_hash = row["providers_hash"] if row else None
-            changed = previous_hash != current_hash
+            previous_known = row is not None
+            changed = previous_known and previous_hash != current_hash
             added = sorted(set(current_providers) - set(previous_providers))
             removed = sorted(set(previous_providers) - set(current_providers))
             notification_created = False
@@ -120,6 +122,7 @@ class SQLiteStorage:
 
             return AvailabilityChange(
                 media_key=media_key,
+                previous_known=previous_known,
                 previous_providers=previous_providers,
                 current_providers=current_providers,
                 added_providers=added,

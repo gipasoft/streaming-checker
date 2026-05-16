@@ -52,6 +52,13 @@ def _configuration_summary(settings: Settings | None) -> dict[str, str | bool | 
         "provider_allowlist": settings.provider_allowlist,
         "offer_types": settings.offer_types,
         "database_path": settings.database_path,
+        "ntfy_enabled": bool(settings.ntfy_url and settings.ntfy_topic),
+        "ntfy_url": _safe_url(settings.ntfy_url),
+        "ntfy_topic": settings.ntfy_topic or "",
+        "ntfy_token_configured": bool(settings.ntfy_token),
+        "ntfy_basic_auth_configured": bool(settings.ntfy_username and settings.ntfy_password),
+        "ntfy_priority": settings.ntfy_priority,
+        "ntfy_tags": settings.ntfy_tags,
         "radarr_enabled": bool(settings.radarr_url and settings.radarr_api_key),
         "radarr_url": _safe_url(settings.radarr_url),
         "radarr_api_key_configured": bool(settings.radarr_api_key),
@@ -305,6 +312,7 @@ def _dashboard(result: ScanRunResult | None) -> str:
         ("Errori", result.error_count if result else 0),
         ("Cambi provider", result.changed_count if result else 0),
         ("Notifiche", result.notification_count if result else 0),
+        ("Inviate", result.notification_sent_count if result else 0),
     ]
     cards = "".join(
         f'<div class="panel metric"><span class="value">{value}</span><span class="label">{label}</span></div>'

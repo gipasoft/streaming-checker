@@ -23,14 +23,18 @@ class SQLiteStorageTest(unittest.TestCase):
             changed = storage.record_availability("radarr", item, ["Netflix", "Prime Video"])
             repeated_state = storage.record_availability("radarr", item, ["Netflix"])
 
-            self.assertTrue(first.changed)
-            self.assertTrue(first.notification_created)
+            self.assertFalse(first.changed)
+            self.assertFalse(first.notification_created)
             self.assertFalse(same.changed)
             self.assertFalse(same.notification_created)
             self.assertEqual(changed.added_providers, ["Prime Video"])
             self.assertTrue(changed.notification_created)
             self.assertTrue(repeated_state.changed)
-            self.assertFalse(repeated_state.notification_created)
+            self.assertTrue(repeated_state.notification_created)
+            duplicate = storage.record_availability("radarr", item, ["Netflix", "Prime Video"])
+
+            self.assertTrue(duplicate.changed)
+            self.assertFalse(duplicate.notification_created)
             self.assertEqual(storage.notification_count(), 2)
 
     def test_initializes_expected_tables(self):

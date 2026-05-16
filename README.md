@@ -14,6 +14,7 @@ Piccolo container Python per controllare se film/serie mancanti in Radarr/Sonarr
   - `streaming-disney-plus`
 - Rimuove i tag gestiti quando il contenuto non risulta più disponibile, se `REMOVE_STALE_TAGS=true`.
 - Salva cronologia scansioni, cache disponibilità e storico notifiche in SQLite.
+- Può inviare notifiche ntfy quando cambiano i provider disponibili.
 - Di default è in `DRY_RUN=true`, quindi non modifica nulla.
 
 ## Requisiti
@@ -62,6 +63,11 @@ TAG_GENERIC=true
 TAG_PROVIDERS=true
 GENERIC_TAG=available-streaming
 DATABASE_PATH=/data/streaming_checker.sqlite
+
+NTFY_URL=https://ntfy.sh
+NTFY_TOPIC=streaming-alerts
+NTFY_PRIORITY=default
+NTFY_TAGS=tv,streaming
 ```
 
 ## Persistenza SQLite
@@ -73,6 +79,32 @@ All'avvio vengono create automaticamente le tabelle SQLite, se mancanti:
 - `scan_history`
 
 La cache confronta i provider dell'ultima scansione con quelli già noti per ogni contenuto e registra una voce di storico solo per stati non già notificati.
+
+## Notifiche ntfy
+
+Le notifiche sono opzionali. Vengono inviate solo quando i provider cambiano rispetto alla cache SQLite già nota; la prima scansione crea la baseline e non notifica.
+
+Per ntfy.sh o un server self-hosted:
+
+```env
+NTFY_URL=https://ntfy.example.com
+NTFY_TOPIC=streaming-alerts
+NTFY_PRIORITY=high
+NTFY_TAGS=tv,streaming
+```
+
+Se il server richiede autenticazione puoi usare un bearer token:
+
+```env
+NTFY_TOKEN=xxx
+```
+
+oppure basic auth:
+
+```env
+NTFY_USERNAME=utente
+NTFY_PASSWORD=password
+```
 
 ## Note
 
