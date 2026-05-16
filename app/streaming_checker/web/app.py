@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import asdict
+from datetime import datetime
 from html import escape
 from threading import Lock
 from urllib.parse import urlsplit, urlunsplit
@@ -9,7 +10,8 @@ from fastapi import FastAPI
 from fastapi.responses import HTMLResponse, RedirectResponse
 
 from streaming_checker.core.config import Settings, load_settings
-from streaming_checker.services.runner import ScanRunResult, ScanRunner
+from streaming_checker.services.runner import ScanRunResult
+from streaming_checker.services.scheduler import ScanExecution, ScanSchedulerService, SchedulerStatus
 from streaming_checker.storage import initialize_storage_from_environment
 
 app = FastAPI(title="streaming-checker")
@@ -17,16 +19,26 @@ app = FastAPI(title="streaming-checker")
 _state_lock = Lock()
 _last_result: ScanRunResult | None = None
 _last_error: str | None = None
+_scheduler_service: ScanSchedulerService | None = None
 
 
 @app.on_event("startup")
-def initialize_storage():
-    global _last_error
+def initialize_services():
+    global _last_error, _scheduler_service
 
     try:
         initialize_storage_from_environment()
+        settings = load_settings()
+        _scheduler_service = ScanSchedulerService(settings, execution_callback=_record_scan_execution)
+        _scheduler_service.start()
     except Exception as exc:
         _last_error = str(exc)
+
+
+@app.on_event("shutdown")
+def shutdown_services():
+    if _scheduler_service:
+        _scheduler_service.shutdown()
 
 
 def _load_settings_for_page() -> tuple[Settings | None, str | None]:
@@ -52,6 +64,8 @@ def _configuration_summary(settings: Settings | None) -> dict[str, str | bool | 
         "provider_allowlist": settings.provider_allowlist,
         "offer_types": settings.offer_types,
         "database_path": settings.database_path,
+        "scan_interval_hours": settings.scan_interval_hours,
+        "run_scan_on_startup": settings.run_scan_on_startup,
         "ntfy_enabled": bool(settings.ntfy_url and settings.ntfy_topic),
         "ntfy_url": _safe_url(settings.ntfy_url),
         "ntfy_topic": settings.ntfy_topic or "",
@@ -76,6 +90,7 @@ def home():
     with _state_lock:
         result = _last_result
         scan_error = _last_error
+    scheduler_status = _scheduler_status()
 
     return HTMLResponse(
         _render_page(
@@ -83,25 +98,59 @@ def home():
             config_error=config_error,
             scan_error=scan_error,
             result=result,
+            scheduler_status=scheduler_status,
         )
     )
 
 
 @app.post("/scan")
 def trigger_scan():
-    global _last_error, _last_result
+    global _last_error
+
+    service = _ensure_scheduler_service()
+    if service is None:
+        with _state_lock:
+            _last_error = "scheduler unavailable"
+        return RedirectResponse("/", status_code=303)
+
+    service.run_manual_scan()
+
+    return RedirectResponse("/", status_code=303)
+
+
+def _ensure_scheduler_service() -> ScanSchedulerService | None:
+    global _last_error, _scheduler_service
+
+    if _scheduler_service:
+        return _scheduler_service
 
     try:
         settings = load_settings()
-        result = ScanRunner(settings).run()
-        with _state_lock:
-            _last_result = result
-            _last_error = None
+        _scheduler_service = ScanSchedulerService(settings, execution_callback=_record_scan_execution)
+        _scheduler_service.start()
+        return _scheduler_service
     except Exception as exc:
-        with _state_lock:
-            _last_error = str(exc)
+        _last_error = str(exc)
+        return None
 
-    return RedirectResponse("/", status_code=303)
+
+def _scheduler_status() -> SchedulerStatus | None:
+    if not _scheduler_service:
+        return None
+    return _scheduler_service.status()
+
+
+def _record_scan_execution(execution: ScanExecution):
+    global _last_error, _last_result
+
+    with _state_lock:
+        if execution.result:
+            _last_result = execution.result
+            _last_error = None
+        elif execution.skipped_reason:
+            _last_error = execution.skipped_reason
+        elif execution.error:
+            _last_error = execution.error
 
 
 def _safe_url(value: str | None) -> str:
@@ -125,6 +174,7 @@ def _render_page(
     config_error: str | None,
     scan_error: str | None,
     result: ScanRunResult | None,
+    scheduler_status: SchedulerStatus | None,
 ) -> str:
     summary = _configuration_summary(settings)
     disabled = "disabled" if config_error else ""
@@ -280,7 +330,7 @@ def _render_page(
         <p class="subtle">{_last_scan_text(result)}</p>
       </div>
       <form class="actions" method="post" action="/scan">
-        <button type="submit" {disabled}>Avvia scansione</button>
+        <button type="submit" {disabled}>Avvia scansione ora</button>
       </form>
     </header>
 
@@ -288,6 +338,7 @@ def _render_page(
     {_alert(scan_error, "Ultima scansione fallita")}
 
     {_dashboard(result)}
+    {_scheduler_panel(scheduler_status)}
 
     <section class="layout">
       <div class="panel">
@@ -331,6 +382,32 @@ def _dashboard(result: ScanRunResult | None) -> str:
         for label, value in metrics
     )
     return f'<section class="grid">{cards}</section>'
+
+
+def _scheduler_panel(status: SchedulerStatus | None) -> str:
+    if status is None:
+        rows = [
+            ("Stato", "non disponibile"),
+            ("Prossima scansione", "-"),
+            ("Ultima scansione", "-"),
+        ]
+    else:
+        state = "running" if status.running else "stopped"
+        if status.scan_running:
+            state = f"{state}, scan in corso"
+        rows = [
+            ("Stato", state),
+            ("Intervallo", f"{status.interval_hours:g} ore" if status.interval_hours else "-"),
+            ("Run on startup", str(status.run_scan_on_startup)),
+            ("Prossima scansione", _format_datetime(status.next_scan_at)),
+            ("Ultima scansione", _format_datetime(status.last_scan_at)),
+            ("Ultima origine", status.last_scan_source or "-"),
+            ("Ultimo skip", status.last_skip_reason or "-"),
+            ("Errore scheduler", status.error or "-"),
+        ]
+
+    rendered = "".join(f"<dt>{escape(label)}</dt><dd><code>{escape(value)}</code></dd>" for label, value in rows)
+    return f'<section class="panel" style="margin-bottom: 18px;"><h2>Scheduler</h2><dl class="config-list">{rendered}</dl></section>'
 
 
 def _results_table(result: ScanRunResult | None) -> str:
@@ -428,6 +505,12 @@ def _last_scan_text(result: ScanRunResult | None) -> str:
     )
 
 
+def _format_datetime(value: datetime | None) -> str:
+    if value is None:
+        return "-"
+    return value.astimezone().strftime("%Y-%m-%d %H:%M:%S")
+
+
 @app.get("/api/last-scan")
 def last_scan():
     with _state_lock:
@@ -437,3 +520,9 @@ def last_scan():
         payload["provider_statistics"] = _last_result.provider_statistics
         payload["provider_category_statistics"] = _last_result.provider_category_statistics
         return {"result": payload, "error": _last_error}
+
+
+@app.get("/api/scheduler")
+def scheduler_status():
+    status = _scheduler_status()
+    return {"scheduler": asdict(status) if status else None}

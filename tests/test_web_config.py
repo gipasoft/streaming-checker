@@ -34,6 +34,8 @@ class WebConfigurationSummaryTest(unittest.TestCase):
             ntfy_password="ntfy-password",
             ntfy_priority="high",
             ntfy_tags=["tv", "movie"],
+            scan_interval_hours=12.0,
+            run_scan_on_startup=True,
         )
 
         summary = _configuration_summary(settings)

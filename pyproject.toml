@@ -8,6 +8,7 @@ version = "0.1.0"
 description = "Tag missing Radarr and Sonarr items when they are available from TMDB watch providers."
 requires-python = ">=3.12"
 dependencies = [
+    "APScheduler==3.11.2",
     "fastapi==0.115.6",
     "requests==2.32.3",
     "uvicorn==0.34.0",

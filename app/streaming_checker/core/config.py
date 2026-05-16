@@ -15,6 +15,19 @@ def _csv(name: str, default: str = "") -> list[str]:
     return [x.strip() for x in value.split(",") if x.strip()]
 
 
+def _float(name: str, default: float) -> float:
+    value = os.getenv(name)
+    if value is None or not value.strip():
+        return default
+    try:
+        parsed = float(value)
+    except ValueError as exc:
+        raise RuntimeError(f"{name} must be a number") from exc
+    if parsed <= 0:
+        raise RuntimeError(f"{name} must be greater than zero")
+    return parsed
+
+
 def default_database_path() -> str:
     if Path("/data").is_dir():
         return "/data/streaming_checker.sqlite"
@@ -51,6 +64,9 @@ class Settings:
     ntfy_priority: str
     ntfy_tags: list[str]
 
+    scan_interval_hours: float
+    run_scan_on_startup: bool
+
 
 def load_settings() -> Settings:
     token = os.getenv("TMDB_BEARER_TOKEN", "").strip()
@@ -84,5 +100,7 @@ def load_settings() -> Settings:
         ntfy_password=os.getenv("NTFY_PASSWORD", "").strip() or None,
         ntfy_priority=os.getenv("NTFY_PRIORITY", "default").strip() or "default",
         ntfy_tags=_csv("NTFY_TAGS", "tv"),
+        scan_interval_hours=_float("SCAN_INTERVAL_HOURS", 12.0),
+        run_scan_on_startup=_bool("RUN_SCAN_ON_STARTUP", True),
     )
 

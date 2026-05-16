@@ -35,6 +35,8 @@ def make_settings(**overrides):
         "ntfy_password": None,
         "ntfy_priority": "high",
         "ntfy_tags": ["tv", "streaming"],
+        "scan_interval_hours": 12.0,
+        "run_scan_on_startup": True,
     }
     values.update(overrides)
     return Settings(**values)

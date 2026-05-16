@@ -64,6 +64,8 @@ TAG_GENERIC=true
 TAG_PROVIDERS=true
 GENERIC_TAG=available-streaming
 DATABASE_PATH=/data/streaming_checker.sqlite
+SCAN_INTERVAL_HOURS=12
+RUN_SCAN_ON_STARTUP=true
 
 NTFY_URL=https://ntfy.sh
 NTFY_TOPIC=streaming-alerts
@@ -80,6 +82,17 @@ All'avvio vengono create automaticamente le tabelle SQLite, se mancanti:
 - `scan_history`
 
 La cache confronta i provider dell'ultima scansione con quelli già noti per ogni contenuto e registra una voce di storico solo per stati non già notificati.
+
+## Scheduler interno
+
+Quando avviato come container web, `streaming-checker` resta in esecuzione e lancia scansioni automatiche con APScheduler.
+
+```env
+SCAN_INTERVAL_HOURS=12
+RUN_SCAN_ON_STARTUP=true
+```
+
+La UI mostra stato scheduler, prossima scansione e ultima scansione. Il bottone manuale resta disponibile e usa lo stesso lock delle scansioni automatiche, quindi due scansioni non si sovrappongono.
 
 ## Normalizzazione provider
 
