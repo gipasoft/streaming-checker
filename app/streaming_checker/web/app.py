@@ -245,6 +245,7 @@ def _render_page(
       background: var(--panel);
       border: 1px solid var(--line);
       border-radius: 8px;
+      min-width: 0;
       padding: 18px;
     }}
     .metric .value {{ display: block; font-size: 30px; font-weight: 800; }}
@@ -272,9 +273,25 @@ def _render_page(
       border-collapse: collapse;
       font-size: 14px;
     }}
+    .table-scroll {{
+      max-width: 100%;
+      overflow-x: auto;
+      padding-bottom: 2px;
+    }}
+    .results-table {{
+      min-width: 880px;
+      table-layout: fixed;
+    }}
+    .results-table th:nth-child(1), .results-table td:nth-child(1) {{ width: 70px; }}
+    .results-table th:nth-child(2), .results-table td:nth-child(2) {{ width: 70px; }}
+    .results-table th:nth-child(3), .results-table td:nth-child(3) {{ width: 22%; }}
+    .results-table th:nth-child(4), .results-table td:nth-child(4) {{ width: 110px; }}
+    .results-table th:nth-child(5), .results-table td:nth-child(5) {{ width: 110px; }}
+    .results-table th:nth-child(6), .results-table td:nth-child(6) {{ width: 28%; }}
+    .results-table th:nth-child(7), .results-table td:nth-child(7) {{ width: 16%; }}
     th, td {{
       text-align: left;
-      padding: 10px 8px;
+      padding: 12px 8px;
       border-bottom: 1px solid var(--line);
       vertical-align: top;
     }}
@@ -316,15 +333,18 @@ def _render_page(
       display: flex;
       flex-wrap: wrap;
       gap: 6px;
+      min-width: 0;
     }}
     .provider-chip {{
       background: #eef2f7;
       border: 1px solid var(--line);
       border-radius: 999px;
       display: inline-block;
+      max-width: 100%;
+      overflow-wrap: anywhere;
       padding: 4px 8px;
-      white-space: nowrap;
     }}
+    .message-cell, .title-cell {{ overflow-wrap: anywhere; }}
     .config-list {{
       display: grid;
       grid-template-columns: minmax(120px, 0.9fr) minmax(0, 1.1fr);
@@ -347,7 +367,7 @@ def _render_page(
     @media (max-width: 520px) {{
       main {{ width: min(100% - 20px, 1120px); padding-top: 20px; }}
       .grid {{ grid-template-columns: 1fr; }}
-      th:nth-child(1), td:nth-child(1) {{ display: none; }}
+      .results-table th:nth-child(1), .results-table td:nth-child(1) {{ display: none; }}
     }}
   </style>
 </head>
@@ -466,19 +486,19 @@ def _results_table(result: ScanRunResult | None) -> str:
                 "<tr>"
                 f"<td>{escape(item.kind)}</td>"
                 f"<td>{_media_type_badge(item.media_type)}</td>"
-                f"<td>{escape(item.title)}</td>"
+                f'<td class="title-cell">{escape(item.title)}</td>'
                 f"<td>{_change_status_badge(item.change_status)}</td>"
                 f'<td><span class="status {escape(item.status)}">{escape(item.status)}</span></td>'
                 f"<td>{providers}</td>"
-                f"<td>{escape(message)}</td>"
+                f'<td class="message-cell">{escape(message)}</td>'
                 "</tr>"
             )
 
     return (
-        "<table><thead><tr><th>Servizio</th><th>Tipo</th><th>Titolo</th><th>Cambio</th><th>Stato</th>"
+        '<div class="table-scroll"><table class="results-table"><thead><tr><th>Servizio</th><th>Tipo</th><th>Titolo</th><th>Cambio</th><th>Stato</th>'
         "<th>Provider</th><th>Messaggio</th></tr></thead><tbody>"
         + "".join(rows)
-        + "</tbody></table>"
+        + "</tbody></table></div>"
     )
 
 
