@@ -1,0 +1,16 @@
+services:
+  streaming-checker:
+    build: .
+    container_name: streaming-checker
+    env_file:
+      - .env
+    volumes:
+      - ./data:/data
+    networks:
+      - qnap-network      
+    restart: unless-stopped
+    labels:
+      - diun.enable=true
+networks:
+  qnap-network:
+    external: true
