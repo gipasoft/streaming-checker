@@ -58,7 +58,10 @@ class ScanResultsUiTest(unittest.TestCase):
         html = _results_table(result)
 
         self.assertIn("table-scroll", html)
+        self.assertIn("desktop-results", html)
         self.assertIn("results-table", html)
+        self.assertIn("mobile-results", html)
+        self.assertIn("result-card", html)
         self.assertIn("provider-cell", html)
         self.assertIn("message-cell", html)
 
@@ -75,6 +78,9 @@ class ScanResultsUiTest(unittest.TestCase):
         self.assertIn("word-break: break-word", html)
         self.assertIn("white-space: normal", html)
         self.assertIn(".providers .provider-chip", html)
+        self.assertIn(".desktop-results", html)
+        self.assertIn(".mobile-results", html)
+        self.assertIn("overflow-x: hidden", html)
 
     def test_provider_filter_bar_uses_counts_and_htmx_attrs(self):
         result = _sample_result()

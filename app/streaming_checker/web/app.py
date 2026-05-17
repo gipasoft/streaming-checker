@@ -215,6 +215,7 @@ def _render_page(
       font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       background: var(--bg);
       color: var(--text);
+      overflow-x: hidden;
     }}
     main {{
       width: min(1120px, calc(100% - 32px));
@@ -333,23 +334,23 @@ def _render_page(
     }}
     .table-scroll {{
       max-width: 100%;
-      overflow-x: auto;
+      overflow-x: hidden;
       padding-bottom: 2px;
     }}
     .results-table {{
-      min-width: 880px;
       table-layout: fixed;
     }}
-    .results-table th:nth-child(1), .results-table td:nth-child(1) {{ width: 70px; }}
-    .results-table th:nth-child(2), .results-table td:nth-child(2) {{ width: 70px; }}
-    .results-table th:nth-child(3), .results-table td:nth-child(3) {{ width: 22%; }}
-    .results-table th:nth-child(4), .results-table td:nth-child(4) {{ width: 110px; }}
-    .results-table th:nth-child(5), .results-table td:nth-child(5) {{ width: 110px; }}
-    .results-table th:nth-child(6), .results-table td:nth-child(6) {{ width: 28%; }}
-    .results-table th:nth-child(7), .results-table td:nth-child(7) {{ width: 16%; }}
-    .results-table td:nth-child(6) {{
+    .results-table th:nth-child(1), .results-table td:nth-child(1) {{ width: 9%; }}
+    .results-table th:nth-child(2), .results-table td:nth-child(2) {{ width: 9%; }}
+    .results-table th:nth-child(3), .results-table td:nth-child(3) {{ width: 24%; }}
+    .results-table th:nth-child(4), .results-table td:nth-child(4) {{ width: 12%; }}
+    .results-table th:nth-child(5), .results-table td:nth-child(5) {{ width: 12%; }}
+    .results-table th:nth-child(6), .results-table td:nth-child(6) {{ width: 22%; }}
+    .results-table th:nth-child(7), .results-table td:nth-child(7) {{ width: 12%; }}
+    .results-table th, .results-table td {{
       min-width: 0;
-      overflow: hidden;
+      overflow-wrap: anywhere;
+      word-break: break-word;
     }}
     th, td {{
       text-align: left;
@@ -381,6 +382,13 @@ def _render_page(
       line-height: 1;
       padding: 4px 8px;
       white-space: nowrap;
+    }}
+    .results-table .badge,
+    .results-table .status {{
+      max-width: 100%;
+      overflow-wrap: anywhere;
+      white-space: normal;
+      word-break: break-word;
     }}
     .badge-movie {{ background: #e0f2fe; color: #075985; }}
     .badge-series {{ background: #f3e8ff; color: #6b21a8; }}
@@ -428,6 +436,63 @@ def _render_page(
     .provider-crunchyroll {{ background: #ffedd5; border-color: #fed7aa; color: #c2410c; }}
     .provider-default {{ background: #eef2f7; border-color: var(--line); color: var(--text); }}
     .message-cell, .title-cell {{ overflow-wrap: anywhere; }}
+    .mobile-results {{
+      display: none;
+    }}
+    .result-card {{
+      border-top: 1px solid var(--line);
+      display: grid;
+      gap: 10px;
+      padding: 14px 0;
+      min-width: 0;
+    }}
+    .result-card:first-child {{
+      border-top: 0;
+      padding-top: 0;
+    }}
+    .result-card:last-child {{
+      padding-bottom: 0;
+    }}
+    .result-card-header {{
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      justify-content: space-between;
+      min-width: 0;
+    }}
+    .result-card-badges {{
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      min-width: 0;
+    }}
+    .result-service {{
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0;
+      text-transform: uppercase;
+    }}
+    .result-title {{
+      font-size: 15px;
+      font-weight: 800;
+      line-height: 1.3;
+      overflow-wrap: anywhere;
+      word-break: break-word;
+    }}
+    .result-card .providers {{
+      margin-top: 0;
+    }}
+    .result-card .debug {{
+      font-size: 11px;
+      line-height: 1.35;
+      overflow: visible;
+      overflow-wrap: anywhere;
+      text-overflow: clip;
+      white-space: normal;
+      word-break: break-word;
+    }}
     .stats-table td:last-child {{
       font-weight: 800;
       text-align: right;
@@ -448,21 +513,27 @@ def _render_page(
       display: block;
       font-size: 12px;
       margin-top: 4px;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
+      overflow-wrap: anywhere;
+      word-break: break-word;
     }}
     @media (max-width: 820px) {{
       header, .layout {{ grid-template-columns: 1fr; display: grid; }}
       .grid {{ grid-template-columns: repeat(2, minmax(0, 1fr)); }}
       .scheduler-strip {{ grid-template-columns: repeat(2, minmax(0, 1fr)); }}
       .actions {{ justify-content: start; }}
+      .desktop-results {{ display: none; }}
+      .mobile-results {{ display: grid; gap: 0; }}
     }}
     @media (max-width: 520px) {{
       main {{ width: min(100% - 20px, 1120px); padding-top: 20px; }}
       .grid {{ grid-template-columns: 1fr; }}
       .scheduler-strip {{ grid-template-columns: 1fr; }}
-      .results-table th:nth-child(1), .results-table td:nth-child(1) {{ display: none; }}
+      header {{ gap: 14px; }}
+      button {{ width: 100%; }}
+      .actions {{ width: 100%; }}
+      .filter-bar {{ max-width: 100%; overflow: hidden; }}
+      .filter-bar a {{ max-width: 100%; }}
+      .filter-chip {{ white-space: normal; }}
     }}
   </style>
 </head>
@@ -597,11 +668,23 @@ def _results_table(result: ScanRunResult | None, active_provider: str | None = N
         return '<p class="empty">Nessuna scansione eseguita in questa sessione.</p>'
 
     rows: list[str] = []
+    cards: list[str] = []
     for arr_result in result.arr_results:
         if not arr_result.enabled:
             rows.append(
                 f"<tr><td>{escape(arr_result.kind)}</td><td>-</td><td>-</td><td>-</td><td>"
                 '<span class="status skipped">disabled</span></td><td>-</td><td>-</td></tr>'
+            )
+            cards.append(
+                _result_card(
+                    service=arr_result.kind,
+                    media_type=None,
+                    title="Servizio disabilitato",
+                    providers_html="-",
+                    change_status=None,
+                    status="skipped",
+                    message=None,
+                )
             )
             continue
 
@@ -609,6 +692,17 @@ def _results_table(result: ScanRunResult | None, active_provider: str | None = N
             rows.append(
                 f"<tr><td>{escape(arr_result.kind)}</td><td>-</td><td>-</td><td>-</td><td>"
                 '<span class="status processed">empty</span></td><td>-</td><td>Nessun elemento mancante</td></tr>'
+            )
+            cards.append(
+                _result_card(
+                    service=arr_result.kind,
+                    media_type=None,
+                    title="Nessun elemento mancante",
+                    providers_html="-",
+                    change_status=None,
+                    status="processed",
+                    message=None,
+                )
             )
             continue
 
@@ -629,16 +723,30 @@ def _results_table(result: ScanRunResult | None, active_provider: str | None = N
                 f'<td class="message-cell">{escape(message)}</td>'
                 "</tr>"
             )
+            cards.append(
+                _result_card(
+                    service=item.kind,
+                    media_type=item.media_type,
+                    title=item.title,
+                    providers_html=providers,
+                    change_status=item.change_status,
+                    status=item.status,
+                    message=item.message,
+                )
+            )
 
     if not rows:
         provider_text = escape(active_provider) if active_provider else "questo filtro"
         return f'<p class="empty">Nessun risultato per {provider_text}.</p>'
 
     return (
-        '<div class="table-scroll"><table class="results-table"><thead><tr><th>Servizio</th><th>Tipo</th><th>Titolo</th><th>Cambio</th><th>Stato</th>'
+        '<div class="table-scroll desktop-results"><table class="results-table"><thead><tr><th>Servizio</th><th>Tipo</th><th>Titolo</th><th>Cambio</th><th>Stato</th>'
         "<th>Provider</th><th>Messaggio</th></tr></thead><tbody>"
         + "".join(rows)
         + "</tbody></table></div>"
+        + '<div class="mobile-results" aria-label="Risultati scansione">'
+        + "".join(cards)
+        + "</div>"
     )
 
 
@@ -664,6 +772,38 @@ def _providers_display(canonical_names: list[str], original_names: list[str]) ->
         originals = ", ".join(original_names) if original_names else "-"
         display = f'{display}<span class="debug" title="TMDB: {escape(originals)}">TMDB: {escape(originals)}</span>'
     return display
+
+
+def _result_card(
+    *,
+    service: str,
+    media_type: str | None,
+    title: str,
+    providers_html: str,
+    change_status: str | None,
+    status: str,
+    message: str | None,
+) -> str:
+    media_badge = _media_type_badge(media_type) if media_type else ""
+    change_badge = _change_status_badge(change_status) if change_status else ""
+    message_html = (
+        f'<span class="debug">{escape(message)}</span>'
+        if message and providers_html == "-"
+        else ""
+    )
+    return (
+        '<article class="result-card">'
+        '<div class="result-card-header">'
+        f'<span class="result-service">{escape(service)}</span>'
+        '<span class="result-card-badges">'
+        f"{media_badge}{change_badge}"
+        f'<span class="status {escape(status)}">{escape(status)}</span>'
+        "</span>"
+        "</div>"
+        f'<div class="result-title">{escape(title)}</div>'
+        f'<div class="result-providers">{providers_html}{message_html}</div>'
+        "</article>"
+    )
 
 
 def _media_type_badge(media_type: str) -> str:
