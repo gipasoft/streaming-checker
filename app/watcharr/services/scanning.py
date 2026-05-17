@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from streaming_checker.clients.arr_client import ArrItem
-from streaming_checker.clients.tmdb_client import TmdbClient
-from streaming_checker.core.config import Settings
-from streaming_checker.services.provider_normalizer import NormalizedProvider, ProviderNormalizer
+from watcharr.clients.arr_client import ArrItem
+from watcharr.clients.tmdb_client import TmdbClient
+from watcharr.core.config import Settings
+from watcharr.services.provider_normalizer import NormalizedProvider, ProviderNormalizer
 
 
 def filter_providers(provider_names: list[str], allowlist: list[str]) -> list[str]:

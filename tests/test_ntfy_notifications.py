@@ -5,9 +5,9 @@ from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "app"))
 
-from streaming_checker.core.config import Settings
-from streaming_checker.services.notifications import NtfyNotifier
-from streaming_checker.storage.sqlite import AvailabilityChange
+from watcharr.core.config import Settings
+from watcharr.services.notifications import NtfyNotifier
+from watcharr.storage.sqlite import AvailabilityChange
 
 
 def make_settings(**overrides):
@@ -65,7 +65,7 @@ class NtfyNotifierTest(unittest.TestCase):
         self.assertIn("Aggiunti: Prime Video", message.body)
         self.assertIn("Rimossi: -", message.body)
 
-    @patch("streaming_checker.services.notifications.requests.post")
+    @patch("watcharr.services.notifications.requests.post")
     def test_sends_to_self_hosted_server_with_headers(self, post):
         post.return_value.raise_for_status.return_value = None
         notifier = NtfyNotifier(make_settings(ntfy_url="https://ntfy.internal", ntfy_topic="media alerts"))

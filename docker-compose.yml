@@ -1,7 +1,7 @@
 services:
-  streaming-checker:
-    image: ghcr.io/gipasoft/streaming-checker:latest
-    container_name: streaming-checker
+  watcharr:
+    image: ghcr.io/gipasoft/watcharr:latest
+    container_name: watcharr
     env_file:
       - .env
     ports:

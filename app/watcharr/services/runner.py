@@ -5,14 +5,14 @@ from datetime import UTC, datetime
 from time import perf_counter
 from typing import Callable
 
-from streaming_checker.clients.arr_client import ArrClient, ArrItem
-from streaming_checker.clients.tmdb_client import TmdbClient
-from streaming_checker.core.config import Settings
-from streaming_checker.services.notifications import NtfyNotifier
-from streaming_checker.services.provider_normalizer import NormalizedProvider, ProviderNormalizer
-from streaming_checker.services.scanning import ScanningService
-from streaming_checker.services.tagging import TaggingService
-from streaming_checker.storage.sqlite import SQLiteStorage
+from watcharr.clients.arr_client import ArrClient, ArrItem
+from watcharr.clients.tmdb_client import TmdbClient
+from watcharr.core.config import Settings
+from watcharr.services.notifications import NtfyNotifier
+from watcharr.services.provider_normalizer import NormalizedProvider, ProviderNormalizer
+from watcharr.services.scanning import ScanningService
+from watcharr.services.tagging import TaggingService
+from watcharr.storage.sqlite import SQLiteStorage
 
 
 @dataclass(frozen=True)

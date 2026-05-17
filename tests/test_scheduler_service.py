@@ -6,9 +6,9 @@ from time import sleep
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "app"))
 
-from streaming_checker.core.config import Settings
-from streaming_checker.services.runner import ScanRunResult
-from streaming_checker.services.scheduler import ScanSchedulerService
+from watcharr.core.config import Settings
+from watcharr.services.runner import ScanRunResult
+from watcharr.services.scheduler import ScanSchedulerService
 from datetime import UTC, datetime
 
 

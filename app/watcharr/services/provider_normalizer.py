@@ -2,12 +2,12 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from streaming_checker.core.provider_mappings import (
+from watcharr.core.provider_mappings import (
     PROVIDER_ALIASES,
     PROVIDER_CATEGORIES,
     PROVIDER_CLEANUP_SUFFIXES,
 )
-from streaming_checker.core.tags import slug_provider
+from watcharr.core.tags import slug_provider
 
 
 @dataclass(frozen=True)

@@ -3,7 +3,7 @@ requires = ["setuptools>=69", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "streaming-checker"
+name = "watcharr"
 version = "0.1.0"
 description = "Tag missing Radarr and Sonarr items when they are available from TMDB watch providers."
 requires-python = ">=3.12"
@@ -15,7 +15,7 @@ dependencies = [
 ]
 
 [project.scripts]
-streaming-checker = "streaming_checker.main:main"
+watcharr = "watcharr.main:main"
 
 [tool.setuptools]
 package-dir = {"" = "app"}

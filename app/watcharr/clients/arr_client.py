@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from streaming_checker.clients.http_client import HttpClient
+from watcharr.clients.http_client import HttpClient
 
 
 @dataclass

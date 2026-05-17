@@ -4,9 +4,9 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "app"))
 
-from streaming_checker.services.provider_normalizer import ProviderNormalizer
-from streaming_checker.services.runner import ArrScanResult, ScanItemResult, ScanRunResult
-from streaming_checker.services.scanning import filter_normalized_providers
+from watcharr.services.provider_normalizer import ProviderNormalizer
+from watcharr.services.runner import ArrScanResult, ScanItemResult, ScanRunResult
+from watcharr.services.scanning import filter_normalized_providers
 from datetime import UTC, datetime
 
 

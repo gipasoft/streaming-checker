@@ -5,8 +5,8 @@ from urllib.parse import quote
 
 import requests
 
-from streaming_checker.core.config import Settings
-from streaming_checker.storage.sqlite import AvailabilityChange
+from watcharr.core.config import Settings
+from watcharr.storage.sqlite import AvailabilityChange
 
 
 @dataclass(frozen=True)

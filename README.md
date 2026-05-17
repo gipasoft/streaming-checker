@@ -1,4 +1,4 @@
-# streaming-checker
+# Watcharr
 
 Piccolo container Python per controllare se film/serie mancanti in Radarr/Sonarr sono disponibili in streaming in Italia tramite TMDB Watch Providers, e applicare tag automatici.
 
@@ -63,7 +63,7 @@ REMOVE_STALE_TAGS=true
 TAG_GENERIC=true
 TAG_PROVIDERS=true
 GENERIC_TAG=available-streaming
-DATABASE_PATH=/data/streaming_checker.sqlite
+DATABASE_PATH=/data/watcharr.sqlite
 SCAN_INTERVAL_HOURS=12
 RUN_SCAN_ON_STARTUP=true
 
@@ -85,7 +85,7 @@ La cache confronta i provider dell'ultima scansione con quelli già noti per ogn
 
 ## Scheduler interno
 
-Quando avviato come container web, `streaming-checker` resta in esecuzione e lancia scansioni automatiche con APScheduler.
+Quando avviato come container web, `watcharr` resta in esecuzione e lancia scansioni automatiche con APScheduler.
 
 ```env
 SCAN_INTERVAL_HOURS=12
@@ -151,7 +151,7 @@ Per Sonarr:
 
 ## Sviluppo
 
-Il codice applicativo vive nel package `streaming_checker`.
+Il codice applicativo vive nel package `watcharr`.
 
 ```bash
 python -m unittest discover -s tests
@@ -160,11 +160,11 @@ python -m unittest discover -s tests
 La CLI resta disponibile con:
 
 ```bash
-python -m streaming_checker
+python -m watcharr
 ```
 
 Nel container puoi eseguire una scansione CLI con:
 
 ```bash
-docker compose run --rm streaming-checker python -m streaming_checker
+docker compose run --rm watcharr python -m watcharr
 ```

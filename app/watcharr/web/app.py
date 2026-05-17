@@ -9,13 +9,13 @@ from urllib.parse import quote, urlsplit, urlunsplit
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 
-from streaming_checker.core.config import Settings, load_settings
-from streaming_checker.core.provider_mappings import PROVIDER_BADGE_COLORS
-from streaming_checker.services.runner import ScanRunResult
-from streaming_checker.services.scheduler import ScanExecution, ScanSchedulerService, SchedulerStatus
-from streaming_checker.storage import initialize_storage_from_environment
+from watcharr.core.config import Settings, load_settings
+from watcharr.core.provider_mappings import PROVIDER_BADGE_COLORS
+from watcharr.services.runner import ScanRunResult
+from watcharr.services.scheduler import ScanExecution, ScanSchedulerService, SchedulerStatus
+from watcharr.storage import initialize_storage_from_environment
 
-app = FastAPI(title="streaming-checker")
+app = FastAPI(title="Watcharr")
 
 _state_lock = Lock()
 _last_result: ScanRunResult | None = None
@@ -220,7 +220,7 @@ def _render_page(
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>streaming-checker</title>
+  <title>Watcharr</title>
   <script src="https://unpkg.com/htmx.org@2.0.4" defer></script>
   <style>
     :root {{
@@ -638,7 +638,7 @@ def _dashboard_content(
     <div id="dashboard-content"{poll_attrs}>
       <header>
         <div>
-          <h1>streaming-checker</h1>
+          <h1>Watcharr</h1>
           <p class="subtle">{_last_scan_text(result)}</p>
         </div>
         <form class="actions" method="post" action="{scan_url}" hx-post="{scan_url}" hx-target="#dashboard-content" hx-swap="outerHTML">

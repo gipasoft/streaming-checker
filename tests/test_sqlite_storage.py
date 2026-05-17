@@ -7,14 +7,14 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "app"))
 
-from streaming_checker.clients.arr_client import ArrItem
-from streaming_checker.storage.sqlite import SQLiteStorage
+from watcharr.clients.arr_client import ArrItem
+from watcharr.storage.sqlite import SQLiteStorage
 
 
 class SQLiteStorageTest(unittest.TestCase):
     def test_records_provider_changes_and_deduplicates_notifications(self):
         with tempfile.TemporaryDirectory() as tmpdir:
-            db_path = str(Path(tmpdir) / "streaming-checker.sqlite")
+            db_path = str(Path(tmpdir) / "watcharr.sqlite")
             storage = SQLiteStorage(db_path)
             item = ArrItem(id=10, title="Movie", tmdb_id=100, tvdb_id=None, tags=[], raw={})
 
@@ -43,7 +43,7 @@ class SQLiteStorageTest(unittest.TestCase):
 
     def test_detects_removed_provider_status(self):
         with tempfile.TemporaryDirectory() as tmpdir:
-            db_path = str(Path(tmpdir) / "streaming-checker.sqlite")
+            db_path = str(Path(tmpdir) / "watcharr.sqlite")
             storage = SQLiteStorage(db_path)
             item = ArrItem(id=10, title="Movie", tmdb_id=100, tvdb_id=None, tags=[], raw={})
 
@@ -56,7 +56,7 @@ class SQLiteStorageTest(unittest.TestCase):
 
     def test_initializes_expected_tables(self):
         with tempfile.TemporaryDirectory() as tmpdir:
-            db_path = str(Path(tmpdir) / "streaming-checker.sqlite")
+            db_path = str(Path(tmpdir) / "watcharr.sqlite")
             SQLiteStorage(db_path)
 
             with closing(sqlite3.connect(db_path)) as conn:

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from streaming_checker.clients.http_client import HttpClient
+from watcharr.clients.http_client import HttpClient
 
 
 class TmdbClient:

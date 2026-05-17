@@ -1,4 +1,4 @@
-from streaming_checker.main import main, process_arr
+from watcharr.main import main, process_arr
 
 
 if __name__ == "__main__":

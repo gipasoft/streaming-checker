@@ -8,8 +8,8 @@ from typing import Callable
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.schedulers.base import SchedulerNotRunningError
 
-from streaming_checker.core.config import Settings
-from streaming_checker.services.runner import ScanRunResult, ScanRunner
+from watcharr.core.config import Settings
+from watcharr.services.runner import ScanRunResult, ScanRunner
 
 
 @dataclass(frozen=True)

@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from streaming_checker.clients.arr_client import ArrClient, ArrItem
-from streaming_checker.core.config import Settings
-from streaming_checker.core.tags import desired_tags
+from watcharr.clients.arr_client import ArrClient, ArrItem
+from watcharr.core.config import Settings
+from watcharr.core.tags import desired_tags
 
 
 class TaggingService:

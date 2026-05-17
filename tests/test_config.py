@@ -6,7 +6,7 @@ from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "app"))
 
-from streaming_checker.core.config import load_settings
+from watcharr.core.config import load_settings
 
 
 class ConfigTest(unittest.TestCase):

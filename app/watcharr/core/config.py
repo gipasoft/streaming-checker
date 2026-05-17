@@ -30,8 +30,8 @@ def _float(name: str, default: float) -> float:
 
 def default_database_path() -> str:
     if Path("/data").is_dir():
-        return "/data/streaming_checker.sqlite"
-    return "data/streaming_checker.sqlite"
+        return "/data/watcharr.sqlite"
+    return "data/watcharr.sqlite"
 
 
 @dataclass(frozen=True)

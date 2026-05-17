@@ -4,8 +4,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "app"))
 
-from streaming_checker.core.config import Settings
-from streaming_checker.web.app import _configuration_summary
+from watcharr.core.config import Settings
+from watcharr.web.app import _configuration_summary
 
 
 class WebConfigurationSummaryTest(unittest.TestCase):

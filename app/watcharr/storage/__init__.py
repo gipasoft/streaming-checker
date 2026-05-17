@@ -1,4 +1,4 @@
-from streaming_checker.storage.sqlite import (
+from watcharr.storage.sqlite import (
     AvailabilityChange,
     SQLiteStorage,
     initialize_storage_from_environment,

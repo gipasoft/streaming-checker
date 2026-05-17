@@ -4,7 +4,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "app"))
 
-from streaming_checker.core.tags import desired_tags, provider_tag, slug_provider
+from watcharr.core.tags import desired_tags, provider_tag, slug_provider
 
 
 class TagGenerationTest(unittest.TestCase):

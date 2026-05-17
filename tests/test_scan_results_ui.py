@@ -6,9 +6,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "app"))
 
 from datetime import UTC, datetime
 
-from streaming_checker.services.runner import ArrScanResult, ScanItemResult, ScanRunResult
-from streaming_checker.services.scheduler import SchedulerStatus
-from streaming_checker.web.app import (
+from watcharr.services.runner import ArrScanResult, ScanItemResult, ScanRunResult
+from watcharr.services.scheduler import SchedulerStatus
+from watcharr.web.app import (
     _change_status_badge,
     _item_matches_provider,
     _media_type_badge,

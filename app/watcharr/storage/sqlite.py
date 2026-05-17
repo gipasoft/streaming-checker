@@ -9,8 +9,8 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
 
-from streaming_checker.clients.arr_client import ArrItem
-from streaming_checker.core.config import default_database_path
+from watcharr.clients.arr_client import ArrItem
+from watcharr.core.config import default_database_path
 
 
 SCHEMA_VERSION = 1
