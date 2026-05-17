@@ -10,8 +10,11 @@ from watcharr.services.runner import ArrScanResult, ScanItemResult, ScanRunResul
 from watcharr.services.scheduler import SchedulerStatus
 from watcharr.web.app import (
     _change_status_badge,
+    _column_selector,
     _item_matches_provider,
     _media_type_badge,
+    _ntfy_test_form,
+    _ntfy_test_notice,
     _provider_badge,
     _provider_filter_bar,
     _providers_display,
@@ -67,10 +70,12 @@ class ScanResultsUiTest(unittest.TestCase):
         self.assertIn("provider-cell", html)
         self.assertIn("media-type-cell", html)
         self.assertIn("message-cell", html)
+        self.assertIn('data-column="service" hidden', html)
+        self.assertLess(html.index("Provider"), html.index("Cambio"))
 
     def test_page_css_allows_long_provider_chips_to_wrap(self):
         html = _render_page(
-            settings=None,
+            settings=_settings(),
             config_error=None,
             scan_error=None,
             result=_sample_result(),
@@ -84,12 +89,46 @@ class ScanResultsUiTest(unittest.TestCase):
         self.assertIn("white-space: nowrap", html)
         self.assertIn(".results-table th:not(:last-child)", html)
         self.assertIn("padding-right: 18px", html)
-        self.assertIn("min-width: 920px", html)
-        self.assertIn("overflow-x: auto", html)
         self.assertIn(".service-cell", html)
+        self.assertIn("overflow-x: hidden", html)
         self.assertIn(".providers .provider-chip", html)
         self.assertIn(".desktop-results", html)
         self.assertIn(".mobile-results", html)
+
+    def test_column_selector_defaults_to_hiding_service(self):
+        html = _column_selector()
+
+        self.assertIn("column-selector", html)
+        self.assertIn('data-column-toggle="service"', html)
+        self.assertIn('data-column-toggle="providers" checked', html)
+        self.assertNotIn('data-column-toggle="service" checked', html)
+
+    def test_page_has_column_selector_script(self):
+        html = _render_page(
+            settings=_settings(),
+            config_error=None,
+            scan_error=None,
+            result=_sample_result(),
+            scheduler_status=None,
+            active_provider=None,
+        )
+
+        self.assertIn("watcharr.results.columns", html)
+        self.assertIn("data-column-toggle", html)
+        self.assertIn("htmx:afterSwap", html)
+        self.assertIn("Test ntfy", html)
+
+    def test_ntfy_test_notice_renders_success_and_failure(self):
+        self.assertIn("Test ntfy inviato", _ntfy_test_notice((True, "sent")))
+        self.assertIn("Test ntfy fallito", _ntfy_test_notice((False, "failed")))
+
+    def test_ntfy_test_form_requires_url_and_topic(self):
+        enabled = _ntfy_test_form(_settings(ntfy_url="https://ntfy.example.com", ntfy_topic="topic"), None)
+        disabled = _ntfy_test_form(_settings(ntfy_url=None, ntfy_topic="topic"), None)
+
+        self.assertIn('hx-post="/ntfy/test"', enabled)
+        self.assertNotIn("disabled", enabled)
+        self.assertIn("disabled", disabled)
 
     def test_page_shows_scan_running_state_and_htmx_polling(self):
         started_at = datetime.now(UTC)
@@ -188,6 +227,40 @@ def _sample_result():
             )
         ],
     )
+
+
+def _settings(**overrides):
+    from watcharr.core.config import Settings
+
+    values = {
+        "radarr_url": None,
+        "radarr_api_key": None,
+        "sonarr_url": None,
+        "sonarr_api_key": None,
+        "tmdb_bearer_token": "tmdb",
+        "country": "IT",
+        "language": "it-IT",
+        "dry_run": True,
+        "remove_stale_tags": True,
+        "tag_generic": True,
+        "tag_providers": True,
+        "generic_tag": "available-streaming",
+        "tag_prefix": "streaming-",
+        "provider_allowlist": [],
+        "offer_types": ["flatrate"],
+        "database_path": ":memory:",
+        "ntfy_url": "https://ntfy.example.com",
+        "ntfy_topic": "topic",
+        "ntfy_token": None,
+        "ntfy_username": None,
+        "ntfy_password": None,
+        "ntfy_priority": "default",
+        "ntfy_tags": ["tv"],
+        "scan_interval_hours": 12.0,
+        "run_scan_on_startup": True,
+    }
+    values.update(overrides)
+    return Settings(**values)
 
 
 if __name__ == "__main__":

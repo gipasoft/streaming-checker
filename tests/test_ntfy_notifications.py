@@ -90,6 +90,19 @@ class NtfyNotifierTest(unittest.TestCase):
         self.assertEqual(kwargs["headers"]["Authorization"], "Bearer token")
         self.assertIn("Series (sonarr)", kwargs["data"].decode("utf-8"))
 
+    @patch("watcharr.services.notifications.requests.post")
+    def test_sends_test_notification(self, post):
+        post.return_value.raise_for_status.return_value = None
+        notifier = NtfyNotifier(make_settings(ntfy_url="https://ntfy.internal", ntfy_topic="streaming"))
+
+        sent = notifier.send_test()
+
+        self.assertTrue(sent)
+        post.assert_called_once()
+        kwargs = post.call_args.kwargs
+        self.assertEqual(kwargs["headers"]["Title"], "Watcharr ntfy test")
+        self.assertIn("Watcharr test notification", kwargs["data"].decode("utf-8"))
+
     def test_disabled_without_url_or_topic(self):
         self.assertFalse(NtfyNotifier(make_settings(ntfy_url=None)).enabled)
         self.assertFalse(NtfyNotifier(make_settings(ntfy_topic=None)).enabled)

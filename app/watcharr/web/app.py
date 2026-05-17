@@ -11,6 +11,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 
 from watcharr.core.config import Settings, load_settings
 from watcharr.core.provider_mappings import PROVIDER_BADGE_COLORS
+from watcharr.services.notifications import NtfyNotifier
 from watcharr.services.runner import ScanRunResult
 from watcharr.services.scheduler import ScanExecution, ScanSchedulerService, SchedulerStatus
 from watcharr.storage import initialize_storage_from_environment
@@ -20,6 +21,7 @@ app = FastAPI(title="Watcharr")
 _state_lock = Lock()
 _last_result: ScanRunResult | None = None
 _last_error: str | None = None
+_last_ntfy_test: tuple[bool, str] | None = None
 _scheduler_service: ScanSchedulerService | None = None
 
 
@@ -91,6 +93,7 @@ def home(request: Request, provider: str | None = None):
     with _state_lock:
         result = _last_result
         scan_error = _last_error
+        ntfy_test = _last_ntfy_test
     scheduler_status = _scheduler_status()
 
     active_provider = _resolve_provider_filter(result, provider)
@@ -104,6 +107,7 @@ def home(request: Request, provider: str | None = None):
             settings=settings,
             config_error=config_error,
             scan_error=scan_error,
+            ntfy_test=ntfy_test,
             result=result,
             scheduler_status=scheduler_status,
             active_provider=active_provider,
@@ -139,6 +143,28 @@ def scan_status(provider: str | None = None):
     return HTMLResponse(_dashboard_content_for_provider(provider))
 
 
+@app.post("/ntfy/test")
+def test_ntfy(request: Request, provider: str | None = None):
+    global _last_ntfy_test
+
+    try:
+        settings = load_settings()
+        notifier = NtfyNotifier(settings)
+        if not notifier.enabled:
+            _last_ntfy_test = (False, "ntfy disabled: configure NTFY_URL and NTFY_TOPIC")
+        elif notifier.send_test():
+            _last_ntfy_test = (True, f"ntfy test sent to topic {settings.ntfy_topic}")
+        else:
+            _last_ntfy_test = (False, "ntfy test was not sent")
+    except Exception as exc:
+        _last_ntfy_test = (False, f"ntfy test failed: {exc}")
+
+    if request.headers.get("HX-Request"):
+        return HTMLResponse(_dashboard_content_for_provider(provider))
+
+    return RedirectResponse("/", status_code=303)
+
+
 def _ensure_scheduler_service() -> ScanSchedulerService | None:
     global _last_error, _scheduler_service
 
@@ -166,12 +192,14 @@ def _dashboard_content_for_provider(provider: str | None) -> str:
     with _state_lock:
         result = _last_result
         scan_error = _last_error
+        ntfy_test = _last_ntfy_test
     scheduler_status = _scheduler_status()
     active_provider = _resolve_provider_filter(result, provider)
     return _dashboard_content(
         settings=settings,
         config_error=config_error,
         scan_error=scan_error,
+        ntfy_test=ntfy_test,
         result=result,
         scheduler_status=scheduler_status,
         active_provider=active_provider,
@@ -214,6 +242,7 @@ def _render_page(
     result: ScanRunResult | None,
     scheduler_status: SchedulerStatus | None,
     active_provider: str | None,
+    ntfy_test: tuple[bool, str] | None = None,
 ) -> str:
     return f"""<!doctype html>
 <html lang="it">
@@ -401,20 +430,19 @@ def _render_page(
     }}
     .table-scroll {{
       max-width: 100%;
-      overflow-x: auto;
+      overflow-x: hidden;
       padding-bottom: 2px;
     }}
     .results-table {{
-      min-width: 920px;
       table-layout: fixed;
     }}
-    .results-table th:nth-child(1), .results-table td:nth-child(1) {{ width: 10%; }}
-    .results-table th:nth-child(2), .results-table td:nth-child(2) {{ width: 10%; }}
-    .results-table th:nth-child(3), .results-table td:nth-child(3) {{ width: 22%; }}
-    .results-table th:nth-child(4), .results-table td:nth-child(4) {{ width: 13%; }}
-    .results-table th:nth-child(5), .results-table td:nth-child(5) {{ width: 13%; }}
-    .results-table th:nth-child(6), .results-table td:nth-child(6) {{ width: 22%; }}
-    .results-table th:nth-child(7), .results-table td:nth-child(7) {{ width: 10%; }}
+    .service-cell {{ width: 10%; }}
+    .media-type-cell {{ width: 10%; }}
+    .title-cell {{ width: 24%; }}
+    .provider-cell {{ width: 20%; }}
+    .change-cell {{ width: 13%; }}
+    .status-cell {{ width: 13%; }}
+    .message-cell {{ width: 10%; }}
     .results-table th, .results-table td {{
       min-width: 0;
       overflow-wrap: anywhere;
@@ -429,10 +457,10 @@ def _render_page(
     .results-table th:not(:last-child), .results-table td:not(:last-child) {{
       padding-right: 18px;
     }}
-    .results-table th:nth-child(1), .results-table td:nth-child(1),
-    .results-table th:nth-child(2), .results-table td:nth-child(2),
-    .results-table th:nth-child(4), .results-table td:nth-child(4),
-    .results-table th:nth-child(5), .results-table td:nth-child(5) {{
+    .service-cell,
+    .media-type-cell,
+    .change-cell,
+    .status-cell {{
       overflow-wrap: normal;
       white-space: nowrap;
       word-break: keep-all;
@@ -512,6 +540,32 @@ def _render_page(
     }}
     .filter-chip {{
       white-space: nowrap;
+    }}
+    .column-selector {{
+      align-items: center;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 12px;
+    }}
+    .column-toggle {{
+      align-items: center;
+      background: #f8fafc;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      color: var(--muted);
+      cursor: pointer;
+      display: inline-flex;
+      font-size: 12px;
+      font-weight: 700;
+      gap: 6px;
+      line-height: 1;
+      padding: 6px 10px;
+      white-space: nowrap;
+    }}
+    .column-toggle input {{
+      accent-color: var(--accent);
+      margin: 0;
     }}
     .provider-netflix {{ background: #fee2e2; border-color: #fecaca; color: #b91c1c; }}
     .provider-disney {{ background: #dbeafe; border-color: #bfdbfe; color: #1d4ed8; }}
@@ -631,8 +685,58 @@ def _render_page(
 </head>
 <body>
   <main>
-    {_dashboard_content(settings=settings, config_error=config_error, scan_error=scan_error, result=result, scheduler_status=scheduler_status, active_provider=active_provider)}
+    {_dashboard_content(settings=settings, config_error=config_error, scan_error=scan_error, ntfy_test=ntfy_test, result=result, scheduler_status=scheduler_status, active_provider=active_provider)}
   </main>
+  <script>
+    (() => {{
+      const storageKey = "watcharr.results.columns";
+      const defaults = {{
+        service: false,
+        type: true,
+        title: true,
+        providers: true,
+        change: true,
+        status: true,
+        message: true,
+      }};
+
+      function loadColumns() {{
+        try {{
+          return {{ ...defaults, ...JSON.parse(localStorage.getItem(storageKey) || "{{}}") }};
+        }} catch (_error) {{
+          return {{ ...defaults }};
+        }}
+      }}
+
+      function saveColumns(columns) {{
+        localStorage.setItem(storageKey, JSON.stringify(columns));
+      }}
+
+      function applyColumns() {{
+        const columns = loadColumns();
+        document.querySelectorAll("[data-column]").forEach((element) => {{
+          element.hidden = columns[element.dataset.column] === false;
+        }});
+        document.querySelectorAll("[data-column-toggle]").forEach((input) => {{
+          input.checked = columns[input.dataset.columnToggle] !== false;
+        }});
+      }}
+
+      document.addEventListener("change", (event) => {{
+        const input = event.target.closest("[data-column-toggle]");
+        if (!input) {{
+          return;
+        }}
+        const columns = loadColumns();
+        columns[input.dataset.columnToggle] = input.checked;
+        saveColumns(columns);
+        applyColumns();
+      }});
+
+      document.addEventListener("DOMContentLoaded", applyColumns);
+      document.body.addEventListener("htmx:afterSwap", applyColumns);
+    }})();
+  </script>
 </body>
 </html>"""
 
@@ -642,6 +746,7 @@ def _dashboard_content(
     settings: Settings | None,
     config_error: str | None,
     scan_error: str | None,
+    ntfy_test: tuple[bool, str] | None,
     result: ScanRunResult | None,
     scheduler_status: SchedulerStatus | None,
     active_provider: str | None,
@@ -672,6 +777,7 @@ def _dashboard_content(
 
       {_alert(config_error, "Configurazione non valida")}
       {_alert(scan_error, _scan_error_title(scan_error))}
+      {_ntfy_test_notice(ntfy_test)}
       {_scan_banner(scheduler_status)}
 
       {_dashboard(result)}
@@ -690,6 +796,7 @@ def _dashboard_content(
           <div class="panel" style="margin-top: 18px;">
             <h2>Configurazione</h2>
             {_config_table(summary)}
+            {_ntfy_test_form(settings, active_provider)}
           </div>
         </aside>
       </section>
@@ -727,6 +834,29 @@ def _alert(message: str | None, title: str) -> str:
     if not message:
         return ""
     return f'<div class="alert"><strong>{escape(title)}:</strong> {escape(message)}</div>'
+
+
+def _ntfy_test_notice(ntfy_test: tuple[bool, str] | None) -> str:
+    if not ntfy_test:
+        return ""
+    success, message = ntfy_test
+    css_class = "scan-banner" if success else "alert"
+    title = "Test ntfy inviato" if success else "Test ntfy fallito"
+    return f'<div class="{css_class}"><strong>{title}:</strong> {escape(message)}</div>'
+
+
+def _ntfy_test_form(settings: Settings | None, active_provider: str | None) -> str:
+    if settings is None:
+        return ""
+
+    disabled = "" if settings.ntfy_url and settings.ntfy_topic else " disabled"
+    action = _scan_url("/ntfy/test", active_provider)
+    return (
+        f'<form class="actions" style="margin-top: 14px;" method="post" action="{action}" '
+        f'hx-post="{action}" hx-target="#dashboard-content" hx-swap="outerHTML">'
+        f'<button type="submit"{disabled}>Test ntfy</button>'
+        "</form>"
+    )
 
 
 def _dashboard(result: ScanRunResult | None) -> str:
@@ -788,6 +918,25 @@ def _results_section(result: ScanRunResult | None, active_provider: str | None) 
     )
 
 
+def _column_selector() -> str:
+    columns = [
+        ("service", "Servizio", False),
+        ("type", "Tipo", True),
+        ("title", "Titolo", True),
+        ("providers", "Provider", True),
+        ("change", "Cambio", True),
+        ("status", "Stato", True),
+        ("message", "Messaggio", True),
+    ]
+    toggles = "".join(
+        '<label class="column-toggle">'
+        f'<input type="checkbox" data-column-toggle="{key}"{" checked" if checked else ""}>'
+        f"{label}</label>"
+        for key, label, checked in columns
+    )
+    return f'<nav class="column-selector desktop-results" aria-label="Colonne risultati">{toggles}</nav>'
+
+
 def _provider_filter_bar(result: ScanRunResult | None, active_provider: str | None) -> str:
     if result is None or not result.provider_statistics:
         return ""
@@ -819,8 +968,13 @@ def _results_table(result: ScanRunResult | None, active_provider: str | None = N
     for arr_result in result.arr_results:
         if not arr_result.enabled:
             rows.append(
-                f'<tr><td class="service-cell">{escape(arr_result.kind)}</td><td>-</td><td>-</td><td>-</td><td>'
-                '<span class="status skipped">disabled</span></td><td>-</td><td>-</td></tr>'
+                f'<tr><td class="service-cell" data-column="service" hidden>{escape(arr_result.kind)}</td>'
+                '<td class="media-type-cell" data-column="type">-</td>'
+                '<td class="title-cell" data-column="title">-</td>'
+                '<td class="provider-cell" data-column="providers">-</td>'
+                '<td class="change-cell" data-column="change">-</td>'
+                '<td class="status-cell" data-column="status"><span class="status skipped">disabled</span></td>'
+                '<td class="message-cell" data-column="message">-</td></tr>'
             )
             cards.append(
                 _result_card(
@@ -837,8 +991,13 @@ def _results_table(result: ScanRunResult | None, active_provider: str | None = N
 
         if not arr_result.items:
             rows.append(
-                f'<tr><td class="service-cell">{escape(arr_result.kind)}</td><td>-</td><td>-</td><td>-</td><td>'
-                '<span class="status processed">empty</span></td><td>-</td><td>Nessun elemento mancante</td></tr>'
+                f'<tr><td class="service-cell" data-column="service" hidden>{escape(arr_result.kind)}</td>'
+                '<td class="media-type-cell" data-column="type">-</td>'
+                '<td class="title-cell" data-column="title">-</td>'
+                '<td class="provider-cell" data-column="providers">-</td>'
+                '<td class="change-cell" data-column="change">-</td>'
+                '<td class="status-cell" data-column="status"><span class="status processed">empty</span></td>'
+                '<td class="message-cell" data-column="message">Nessun elemento mancante</td></tr>'
             )
             cards.append(
                 _result_card(
@@ -861,13 +1020,13 @@ def _results_table(result: ScanRunResult | None, active_provider: str | None = N
             message = item.message or "-"
             rows.append(
                 "<tr>"
-                f'<td class="service-cell">{escape(item.kind)}</td>'
-                f'<td class="media-type-cell">{_media_type_badge(item.media_type)}</td>'
-                f'<td class="title-cell">{escape(item.title)}</td>'
-                f"<td>{_change_status_badge(item.change_status)}</td>"
-                f'<td><span class="status {escape(item.status)}">{escape(item.status)}</span></td>'
-                f'<td class="provider-cell">{providers}</td>'
-                f'<td class="message-cell">{escape(message)}</td>'
+                f'<td class="service-cell" data-column="service" hidden>{escape(item.kind)}</td>'
+                f'<td class="media-type-cell" data-column="type">{_media_type_badge(item.media_type)}</td>'
+                f'<td class="title-cell" data-column="title">{escape(item.title)}</td>'
+                f'<td class="provider-cell" data-column="providers">{providers}</td>'
+                f'<td class="change-cell" data-column="change">{_change_status_badge(item.change_status)}</td>'
+                f'<td class="status-cell" data-column="status"><span class="status {escape(item.status)}">{escape(item.status)}</span></td>'
+                f'<td class="message-cell" data-column="message">{escape(message)}</td>'
                 "</tr>"
             )
             cards.append(
@@ -887,8 +1046,16 @@ def _results_table(result: ScanRunResult | None, active_provider: str | None = N
         return f'<p class="empty">Nessun risultato per {provider_text}.</p>'
 
     return (
-        '<div class="table-scroll desktop-results"><table class="results-table"><thead><tr><th>Servizio</th><th>Tipo</th><th>Titolo</th><th>Cambio</th><th>Stato</th>'
-        "<th>Provider</th><th>Messaggio</th></tr></thead><tbody>"
+        _column_selector()
+        + '<div class="table-scroll desktop-results"><table class="results-table"><thead><tr>'
+        '<th class="service-cell" data-column="service" hidden>Servizio</th>'
+        '<th class="media-type-cell" data-column="type">Tipo</th>'
+        '<th class="title-cell" data-column="title">Titolo</th>'
+        '<th class="provider-cell" data-column="providers">Provider</th>'
+        '<th class="change-cell" data-column="change">Cambio</th>'
+        '<th class="status-cell" data-column="status">Stato</th>'
+        '<th class="message-cell" data-column="message">Messaggio</th>'
+        "</tr></thead><tbody>"
         + "".join(rows)
         + "</tbody></table></div>"
         + '<div class="mobile-results" aria-label="Risultati scansione">'

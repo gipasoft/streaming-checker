@@ -37,6 +37,22 @@ class NtfyNotifier:
             return False
 
         message = self.build_provider_change_message(kind=kind, title=title, change=change)
+        return self.send_message(message)
+
+    def send_test(self) -> bool:
+        if not self.enabled:
+            return False
+
+        return self.send_message(
+            NtfyMessage(
+                title="Watcharr ntfy test",
+                body="Watcharr test notification: ntfy is configured and reachable.",
+                priority=self.priority,
+                tags=self.tags,
+            )
+        )
+
+    def send_message(self, message: NtfyMessage) -> bool:
         headers = {
             "Title": message.title,
             "Priority": message.priority,
@@ -82,4 +98,3 @@ class NtfyNotifier:
     @staticmethod
     def _join(values: list[str]) -> str:
         return ", ".join(values) if values else "-"
-
