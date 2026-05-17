@@ -404,7 +404,7 @@ def _render_page(
       filter: brightness(0.97);
     }}
     .filter-chip.active {{
-      box-shadow: 0 0 0 2px var(--accent);
+      border-color: var(--accent);
     }}
     .filter-count {{
       font-weight: 800;
