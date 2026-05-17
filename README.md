@@ -4,16 +4,16 @@ Streaming availability tracker for Radarr & Sonarr
 
 Lightweight service that checks missing/monitored items in Radarr and Sonarr, looks up streaming availability via TMDB watch providers, and optionally tags items / notifies you when providers change.
 
-![Python >=3.12](https://img.shields.io/badge/python-%3E%3D3.12-blue)
-![Docker](https://img.shields.io/badge/docker-enabled-blue)
-![License: Unspecified](https://img.shields.io/badge/license-Unspecified-lightgrey)
+[![Python >=3.12](https://img.shields.io/badge/python-%3E%3D3.12-blue)](pyproject.toml)
+[![Docker](https://img.shields.io/badge/docker-enabled-blue)](Dockerfile)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 [![Build Status](https://github.com/gipasoft/watcharr/actions/workflows/build.yml/badge.svg)](https://github.com/gipasoft/watcharr/actions)
 
-Quick value proposition: scan your Radarr/Sonarr library, track which titles are available on streaming providers (via TMDB), and apply automatic tagging and notifications.
+Scan your Radarr/Sonarr library, track which missing titles are available on streaming providers via TMDB, and apply automatic tags and notifications when availability changes.
 
 ---
 
-**Dashboard Preview**
+## Dashboard Preview
 
 ![Dashboard Preview](docs/images/dashboard.png)
 ![Mobile Preview](docs/images/mobile.png)
@@ -30,7 +30,8 @@ Quick value proposition: scan your Radarr/Sonarr library, track which titles are
 - ntfy notifications when providers change
 - Responsive web dashboard for scan results and scheduler state
 - Automatic scheduler (APScheduler) with manual scan button
-- Provider filtering and automatic tagging
+- Provider filters
+- Automatic tagging
 
 ## Quick Start
 
@@ -41,19 +42,25 @@ cp .env.example .env
 # edit .env and set RADARR_API_KEY, TMDB_BEARER_TOKEN, etc.
 ```
 
-2. Start with Docker Compose:
+2. Configure the APIs in `.env`:
+
+- `RADARR_URL` / `RADARR_API_KEY`
+- `SONARR_URL` / `SONARR_API_KEY` if you use Sonarr
+- `TMDB_BEARER_TOKEN`
+
+3. Start with Docker Compose:
 
 ```bash
 docker compose up -d
 ```
 
-3. Open the web UI:
+4. Open the web UI:
 
 ```text
 http://localhost:8080
 ```
 
-4. To actually apply tags (default is dry-run):
+5. To actually apply tags (default is dry-run):
 
 ```env
 DRY_RUN=false
@@ -70,18 +77,27 @@ SONARR_API_KEY=xxx
 
 TMDB_BEARER_TOKEN=xxx
 COUNTRY=IT
+LANGUAGE=it-IT
 
 DRY_RUN=true
 REMOVE_STALE_TAGS=true
 TAG_GENERIC=true
 TAG_PROVIDERS=true
 GENERIC_TAG=available-streaming
+TAG_PREFIX=streaming-
+
+PROVIDER_ALLOWLIST=
+OFFER_TYPES=flatrate,free,ads
+
 DATABASE_PATH=/data/watcharr.sqlite
 SCAN_INTERVAL_HOURS=12
 RUN_SCAN_ON_STARTUP=true
 
 NTFY_URL=https://ntfy.sh
 NTFY_TOPIC=streaming-alerts
+NTFY_TOKEN=xxx
+NTFY_USERNAME=utente
+NTFY_PASSWORD=password
 NTFY_PRIORITY=default
 NTFY_TAGS=tv,streaming
 ```
@@ -192,8 +208,9 @@ SQLite + ntfy + UI
 Planned:
 
 - [ ] UI authentication / user preferences
-- [ ] Additional provider sources (e.g., JustWatch)
-- [ ] Export / API for integrations
+- [ ] Exportable scan history
+- [ ] More deployment examples
+- [ ] Better setup diagnostics in the web UI
 
 ## Development
 
@@ -224,5 +241,3 @@ docker compose run --rm watcharr python -m watcharr
 - `app/watcharr/storage` - SQLite storage
 - `app/watcharr/web` - web UI
 - `tests/` - unit tests
-
-If you want me to also add a short CONTRIBUTING section or example GitHub Actions badge link replacement, I can update that next.

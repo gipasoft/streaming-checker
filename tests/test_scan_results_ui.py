@@ -64,6 +64,7 @@ class ScanResultsUiTest(unittest.TestCase):
         self.assertIn("mobile-results", html)
         self.assertIn("result-card", html)
         self.assertIn("provider-cell", html)
+        self.assertIn("media-type-cell", html)
         self.assertIn("message-cell", html)
 
     def test_page_css_allows_long_provider_chips_to_wrap(self):
@@ -77,7 +78,9 @@ class ScanResultsUiTest(unittest.TestCase):
         )
 
         self.assertIn("word-break: break-word", html)
+        self.assertIn("word-break: keep-all", html)
         self.assertIn("white-space: normal", html)
+        self.assertIn("white-space: nowrap", html)
         self.assertIn(".providers .provider-chip", html)
         self.assertIn(".desktop-results", html)
         self.assertIn(".mobile-results", html)

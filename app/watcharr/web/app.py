@@ -450,20 +450,19 @@ def _render_page(
       padding: 4px 8px;
       white-space: nowrap;
     }}
-    /* Keep badges (eg. Movie / Series) on a single line in the results table
-       while allowing status cells to wrap as needed. */
+    /* Keep compact badges readable in fixed-width table columns. */
     .results-table .badge {{
-      max-width: 100%;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
       flex: 0 0 auto;
+      max-width: none;
+      overflow-wrap: normal;
+      text-overflow: clip;
+      white-space: nowrap;
+      word-break: keep-all;
     }}
     .results-table .status {{
-      max-width: 100%;
-      overflow-wrap: anywhere;
-      white-space: normal;
-      word-break: break-word;
+      overflow-wrap: normal;
+      white-space: nowrap;
+      word-break: keep-all;
     }}
     .badge-movie {{ background: #e0f2fe; color: #075985; }}
     .badge-series {{ background: #f3e8ff; color: #6b21a8; }}
@@ -846,7 +845,7 @@ def _results_table(result: ScanRunResult | None, active_provider: str | None = N
             rows.append(
                 "<tr>"
                 f"<td>{escape(item.kind)}</td>"
-                f"<td>{_media_type_badge(item.media_type)}</td>"
+                f'<td class="media-type-cell">{_media_type_badge(item.media_type)}</td>'
                 f'<td class="title-cell">{escape(item.title)}</td>'
                 f"<td>{_change_status_badge(item.change_status)}</td>"
                 f'<td><span class="status {escape(item.status)}">{escape(item.status)}</span></td>'
