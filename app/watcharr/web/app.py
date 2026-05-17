@@ -396,8 +396,37 @@ def _render_page(
       gap: 8px;
       margin-bottom: 14px;
     }}
+    .quick-filter-bar {{
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 12px;
+    }}
     .filter-bar a {{
       text-decoration: none;
+    }}
+    .media-filter-button {{
+      align-items: center;
+      background: #f8fafc;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      color: var(--muted);
+      cursor: pointer;
+      display: inline-flex;
+      font-size: 12px;
+      font-weight: 800;
+      line-height: 1;
+      padding: 7px 11px;
+      white-space: nowrap;
+      width: auto;
+    }}
+    .media-filter-button:hover {{
+      background: #eef2f7;
+    }}
+    .media-filter-button.active {{
+      background: #ecfdf5;
+      border-color: var(--accent);
+      color: var(--accent-strong);
     }}
     .filter-chip {{ transition: filter 120ms ease; }}
     .filter-chip:hover {{
@@ -653,6 +682,9 @@ def _render_page(
     .mobile-results {{
       display: none;
     }}
+    [data-result-media-type].is-media-filtered {{
+      display: none;
+    }}
     .result-card {{
       border-top: 1px solid var(--line);
       display: grid;
@@ -752,6 +784,7 @@ def _render_page(
       .actions {{ width: 100%; }}
       .filter-bar {{ max-width: 100%; overflow: hidden; }}
       .filter-bar a {{ max-width: 100%; }}
+      .media-filter-button {{ width: auto; }}
       .filter-chip {{ white-space: normal; }}
     }}
   </style>
@@ -763,6 +796,7 @@ def _render_page(
   <script>
     (() => {{
       const storageKey = "watcharr.results.columns";
+      const mediaFilterKey = "watcharr.results.mediaFilter";
       const defaults = {{
         service: false,
         type: true,
@@ -785,6 +819,15 @@ def _render_page(
         localStorage.setItem(storageKey, JSON.stringify(columns));
       }}
 
+      function loadMediaFilter() {{
+        const value = localStorage.getItem(mediaFilterKey) || "all";
+        return ["all", "movie", "series"].includes(value) ? value : "all";
+      }}
+
+      function saveMediaFilter(value) {{
+        localStorage.setItem(mediaFilterKey, value);
+      }}
+
       function applyColumns() {{
         const columns = loadColumns();
         document.querySelectorAll("[data-column]").forEach((element) => {{
@@ -792,6 +835,22 @@ def _render_page(
         }});
         document.querySelectorAll("[data-column-toggle]").forEach((input) => {{
           input.checked = columns[input.dataset.columnToggle] !== false;
+        }});
+      }}
+
+      function applyMediaFilter() {{
+        const activeFilter = loadMediaFilter();
+        document.querySelectorAll("[data-media-filter]").forEach((button) => {{
+          const active = button.dataset.mediaFilter === activeFilter;
+          button.classList.toggle("active", active);
+          button.setAttribute("aria-pressed", active ? "true" : "false");
+        }});
+        document.querySelectorAll("[data-result-media-type]").forEach((element) => {{
+          const mediaType = element.dataset.resultMediaType;
+          element.classList.toggle(
+            "is-media-filtered",
+            activeFilter !== "all" && mediaType !== activeFilter
+          );
         }});
       }}
 
@@ -806,8 +865,22 @@ def _render_page(
         applyColumns();
       }});
 
-      document.addEventListener("DOMContentLoaded", applyColumns);
-      document.body.addEventListener("htmx:afterSwap", applyColumns);
+      document.addEventListener("click", (event) => {{
+        const button = event.target.closest("[data-media-filter]");
+        if (!button) {{
+          return;
+        }}
+        saveMediaFilter(button.dataset.mediaFilter);
+        applyMediaFilter();
+      }});
+
+      function applyResultPreferences() {{
+        applyColumns();
+        applyMediaFilter();
+      }}
+
+      document.addEventListener("DOMContentLoaded", applyResultPreferences);
+      document.body.addEventListener("htmx:afterSwap", applyResultPreferences);
 
       if ("serviceWorker" in navigator) {{
         window.addEventListener("load", () => {{
@@ -991,10 +1064,50 @@ def _scheduler_panel(status: SchedulerStatus | None) -> str:
 def _results_section(result: ScanRunResult | None, active_provider: str | None) -> str:
     return (
         '<div id="results-section">'
+        + _media_filter_bar(result, active_provider)
         + _provider_filter_bar(result, active_provider)
         + _results_table(result, active_provider)
         + "</div>"
     )
+
+
+def _media_filter_bar(result: ScanRunResult | None, active_provider: str | None = None) -> str:
+    if result is None:
+        return ""
+
+    counts = {"all": 0, "movie": 0, "series": 0}
+    for arr_result in result.arr_results:
+        for item in arr_result.items:
+            if not _item_matches_provider(item.providers, active_provider):
+                continue
+            counts["all"] += 1
+            if item.media_type in ("movie", "series"):
+                counts[item.media_type] += 1
+
+    if counts["all"] == 0:
+        return ""
+
+    buttons = [
+        ("all", "Tutto", counts["all"]),
+        ("movie", "Movie", counts["movie"]),
+        ("series", "Serie", counts["series"]),
+    ]
+    rendered = "".join(
+        '<button type="button" '
+        f'class="media-filter-button{_active_media_filter_class(key)}" '
+        f'data-media-filter="{key}" aria-pressed="{_active_media_filter_pressed(key)}">'
+        f"{label} ({count})</button>"
+        for key, label, count in buttons
+    )
+    return '<nav class="quick-filter-bar" aria-label="Filtro tipo risultati">' + rendered + "</nav>"
+
+
+def _active_media_filter_class(key: str) -> str:
+    return " active" if key == "all" else ""
+
+
+def _active_media_filter_pressed(key: str) -> str:
+    return "true" if key == "all" else "false"
 
 
 def _column_selector() -> str:
@@ -1052,7 +1165,7 @@ def _results_table(result: ScanRunResult | None, active_provider: str | None = N
     for arr_result in result.arr_results:
         if not arr_result.enabled:
             rows.append(
-                f'<tr><td class="service-cell" data-column="service" hidden>{escape(arr_result.kind)}</td>'
+                f'<tr data-result-media-type="other"><td class="service-cell" data-column="service" hidden>{escape(arr_result.kind)}</td>'
                 '<td class="media-type-cell" data-column="type">-</td>'
                 '<td class="title-cell" data-column="title">-</td>'
                 '<td class="provider-cell" data-column="providers">-</td>'
@@ -1075,7 +1188,7 @@ def _results_table(result: ScanRunResult | None, active_provider: str | None = N
 
         if not arr_result.items:
             rows.append(
-                f'<tr><td class="service-cell" data-column="service" hidden>{escape(arr_result.kind)}</td>'
+                f'<tr data-result-media-type="other"><td class="service-cell" data-column="service" hidden>{escape(arr_result.kind)}</td>'
                 '<td class="media-type-cell" data-column="type">-</td>'
                 '<td class="title-cell" data-column="title">-</td>'
                 '<td class="provider-cell" data-column="providers">-</td>'
@@ -1103,7 +1216,7 @@ def _results_table(result: ScanRunResult | None, active_provider: str | None = N
             providers = _providers_display(item.providers, item.original_provider_names)
             message = item.message or "-"
             rows.append(
-                "<tr>"
+                f'<tr data-result-media-type="{escape(item.media_type)}">'
                 f'<td class="service-cell" data-column="service" hidden>{escape(item.kind)}</td>'
                 f'<td class="media-type-cell" data-column="type">{_media_type_badge(item.media_type)}</td>'
                 f'<td class="title-cell" data-column="title">{escape(item.title)}</td>'
@@ -1190,7 +1303,7 @@ def _result_card(
         else ""
     )
     return (
-        '<article class="result-card">'
+        f'<article class="result-card" data-result-media-type="{escape(media_type or "other")}">'
         '<div class="result-card-header">'
         f'<span class="result-service">{escape(service)}</span>'
         '<span class="result-card-badges">'

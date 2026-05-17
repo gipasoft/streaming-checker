@@ -13,6 +13,7 @@ from watcharr.web.app import (
     _change_status_badge,
     _column_selector,
     _item_matches_provider,
+    _media_filter_bar,
     _media_type_badge,
     _ntfy_test_form,
     _ntfy_test_notice,
@@ -72,7 +73,24 @@ class ScanResultsUiTest(unittest.TestCase):
         self.assertIn("media-type-cell", html)
         self.assertIn("message-cell", html)
         self.assertIn('data-column="service" hidden', html)
+        self.assertIn('data-result-media-type="movie"', html)
         self.assertLess(html.index("Provider"), html.index("Cambio"))
+
+    def test_media_filter_bar_counts_result_types(self):
+        html = _media_filter_bar(_sample_result())
+
+        self.assertIn("quick-filter-bar", html)
+        self.assertIn('data-media-filter="all"', html)
+        self.assertIn("Tutto (2)", html)
+        self.assertIn("Movie (2)", html)
+        self.assertIn("Serie (0)", html)
+        self.assertIn('aria-pressed="true"', html)
+
+    def test_media_filter_bar_counts_current_provider_filter(self):
+        html = _media_filter_bar(_sample_result(), "Netflix")
+
+        self.assertIn("Tutto (1)", html)
+        self.assertIn("Movie (1)", html)
 
     def test_page_css_allows_long_provider_chips_to_wrap(self):
         html = _render_page(
@@ -95,6 +113,9 @@ class ScanResultsUiTest(unittest.TestCase):
         self.assertIn(".providers .provider-chip", html)
         self.assertIn(".desktop-results", html)
         self.assertIn(".mobile-results", html)
+        self.assertIn(".quick-filter-bar", html)
+        self.assertIn(".media-filter-button.active", html)
+        self.assertIn(".is-media-filtered", html)
         self.assertIn("#dashboard-content { display: flex; flex-direction: column; }", html)
         self.assertIn(".layout { order: 1; }", html)
         self.assertIn(".grid { order: 2; }", html)
@@ -121,7 +142,10 @@ class ScanResultsUiTest(unittest.TestCase):
         )
 
         self.assertIn("watcharr.results.columns", html)
+        self.assertIn("watcharr.results.mediaFilter", html)
+        self.assertIn("applyMediaFilter", html)
         self.assertIn("data-column-toggle", html)
+        self.assertIn("data-media-filter", html)
         self.assertIn("htmx:afterSwap", html)
         self.assertIn("Test ntfy", html)
 
