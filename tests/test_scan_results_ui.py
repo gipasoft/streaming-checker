@@ -76,6 +76,18 @@ class ScanResultsUiTest(unittest.TestCase):
         self.assertIn('data-result-media-type="movie"', html)
         self.assertLess(html.index("Provider"), html.index("Cambio"))
 
+    def test_results_table_renders_posters_and_arr_links(self):
+        html = _results_table(_sample_result())
+
+        self.assertIn('src="https://image.tmdb.org/t/p/w92/movie.jpg"', html)
+        self.assertIn('loading="lazy"', html)
+        self.assertIn('width="50" height="75"', html)
+        self.assertIn('data-result-link="https://radarr.local/movie/123"', html)
+        self.assertIn('href="https://radarr.local/movie/123"', html)
+        self.assertIn('target="_blank"', html)
+        self.assertIn('external-link-icon', html)
+        self.assertIn("poster-placeholder", html)
+
     def test_media_filter_bar_counts_result_types(self):
         html = _media_filter_bar(_sample_result())
 
@@ -267,6 +279,9 @@ def _sample_result():
                         media_type="movie",
                         title="Movie",
                         status="processed",
+                        arr_id=123,
+                        arr_url="https://radarr.local/movie/123",
+                        poster_url="https://image.tmdb.org/t/p/w92/movie.jpg",
                         change_status="UNCHANGED",
                         providers=["Amazon Prime Video", "Netflix"],
                         message="providers changed; added: Amazon Prime Video; removed: -",

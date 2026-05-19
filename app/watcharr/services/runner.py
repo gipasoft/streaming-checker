@@ -4,6 +4,7 @@ from dataclasses import dataclass, field, replace
 from datetime import UTC, datetime
 from time import perf_counter
 from typing import Callable
+from urllib.parse import urljoin
 
 from watcharr.clients.arr_client import ArrClient, ArrItem
 from watcharr.clients.tmdb_client import TmdbClient
@@ -21,6 +22,9 @@ class ScanItemResult:
     media_type: str
     title: str
     status: str
+    arr_id: int | None = None
+    arr_url: str | None = None
+    poster_url: str | None = None
     change_status: str = "UNCHANGED"
     providers: list[str] = field(default_factory=list)
     provider_slugs: list[str] = field(default_factory=list)
@@ -224,6 +228,9 @@ class ScanRunner:
         tagger: TaggingService,
         item: ArrItem,
     ) -> ScanItemResult:
+        arr_url = self._arr_detail_url(client.kind, item.id)
+        poster_url = self._poster_url(client.kind, item)
+
         try:
             normalized_providers = scanner.normalized_providers_for_item(client.kind, item)
             if normalized_providers is None:
@@ -232,6 +239,9 @@ class ScanRunner:
                     media_type=self._media_type(client.kind),
                     title=item.title,
                     status="skipped",
+                    arr_id=item.id,
+                    arr_url=arr_url,
+                    poster_url=poster_url,
                     message="missing tmdbId/tvdbId mapping",
                 )
 
@@ -250,6 +260,9 @@ class ScanRunner:
                 media_type=self._media_type(client.kind),
                 title=item.title,
                 status="processed",
+                arr_id=item.id,
+                arr_url=arr_url,
+                poster_url=poster_url,
                 change_status=change.status if change else "UNCHANGED",
                 providers=providers,
                 provider_slugs=[provider.slug for provider in normalized_providers],
@@ -270,6 +283,9 @@ class ScanRunner:
                 media_type=self._media_type(client.kind),
                 title=item.title,
                 status="error",
+                arr_id=item.id,
+                arr_url=arr_url,
+                poster_url=poster_url,
                 message=str(exc),
             )
 
@@ -326,4 +342,68 @@ class ScanRunner:
         if kind == "sonarr":
             return "series"
         return kind
+
+    def _arr_detail_url(self, kind: str, item_id: int) -> str | None:
+        if kind == "radarr":
+            base_url = self.settings.radarr_url
+            path = "movie"
+        elif kind == "sonarr":
+            base_url = self.settings.sonarr_url
+            path = "series"
+        else:
+            return None
+
+        if not base_url:
+            return None
+        return f"{base_url.rstrip('/')}/{path}/{item_id}"
+
+    def _poster_url(self, kind: str, item: ArrItem) -> str | None:
+        raw = item.raw or {}
+        base_url = self.settings.radarr_url if kind == "radarr" else self.settings.sonarr_url
+
+        poster_path = raw.get("posterPath") or raw.get("poster_path")
+        if isinstance(poster_path, str) and poster_path.strip():
+            return self._tmdb_poster_url(poster_path)
+
+        image_urls: list[str] = []
+        for image in raw.get("images") or []:
+            if not isinstance(image, dict):
+                continue
+            if str(image.get("coverType") or "").casefold() != "poster":
+                continue
+            for key in ("remoteUrl", "url"):
+                value = image.get(key)
+                if isinstance(value, str) and value.strip():
+                    image_urls.append(value.strip())
+
+        tmdb_image = next((url for url in image_urls if "tmdb.org/" in url or "themoviedb.org/" in url), None)
+        selected = tmdb_image or (image_urls[0] if image_urls else None)
+        if not selected:
+            return None
+
+        selected = self._compact_tmdb_image_url(selected)
+        if selected.startswith("/"):
+            return urljoin(f"{base_url.rstrip('/')}/", selected.lstrip("/")) if base_url else None
+        return selected
+
+    @staticmethod
+    def _tmdb_poster_url(path: str) -> str | None:
+        normalized = path.strip()
+        if not normalized:
+            return None
+        if normalized.startswith("http://") or normalized.startswith("https://"):
+            return ScanRunner._compact_tmdb_image_url(normalized)
+        return f"https://image.tmdb.org/t/p/w92/{normalized.lstrip('/')}"
+
+    @staticmethod
+    def _compact_tmdb_image_url(url: str) -> str:
+        marker = "image.tmdb.org/t/p/"
+        if marker not in url:
+            return url
+
+        before, after = url.split(marker, 1)
+        parts = after.split("/", 1)
+        if len(parts) != 2:
+            return url
+        return f"{before}{marker}w92/{parts[1]}"
 

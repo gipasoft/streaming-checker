@@ -494,11 +494,11 @@ def _render_page(
     }}
     .service-cell {{ width: 10%; }}
     .media-type-cell {{ width: 10%; }}
-    .title-cell {{ width: 24%; }}
-    .provider-cell {{ width: 20%; }}
+    .title-cell {{ width: 26%; }}
+    .provider-cell {{ width: 19%; }}
     .change-cell {{ width: 13%; }}
     .status-cell {{ width: 13%; }}
-    .message-cell {{ width: 10%; }}
+    .message-cell {{ width: 7%; }}
     .results-table th, .results-table td {{
       min-width: 0;
       overflow-wrap: anywhere;
@@ -679,6 +679,69 @@ def _render_page(
       word-break: keep-all;
     }}
     .message-cell, .title-cell {{ overflow-wrap: anywhere; }}
+    .result-row-link {{
+      cursor: pointer;
+      transition: background-color 120ms ease;
+    }}
+    .result-row-link:hover {{
+      background: #f8fafc;
+    }}
+    .title-with-poster {{
+      align-items: center;
+      display: flex;
+      gap: 10px;
+      min-height: 75px;
+      min-width: 0;
+    }}
+    .poster-thumb {{
+      aspect-ratio: 2 / 3;
+      background: #eef2f7;
+      border: 1px solid var(--line);
+      border-radius: 4px;
+      color: var(--muted);
+      display: block;
+      flex: 0 0 50px;
+      height: 75px;
+      object-fit: cover;
+      overflow: hidden;
+      width: 50px;
+    }}
+    .poster-placeholder {{
+      align-items: center;
+      display: grid;
+      font-size: 18px;
+      font-weight: 800;
+      justify-items: center;
+      line-height: 1;
+    }}
+    .title-stack {{
+      display: grid;
+      gap: 4px;
+      min-width: 0;
+    }}
+    .title-link {{
+      align-items: center;
+      color: inherit;
+      display: inline-flex;
+      font-weight: 800;
+      gap: 5px;
+      line-height: 1.3;
+      min-width: 0;
+      overflow-wrap: anywhere;
+      text-decoration: none;
+      word-break: break-word;
+    }}
+    .title-link:hover {{
+      color: var(--accent-strong);
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }}
+    .external-link-icon {{
+      color: var(--muted);
+      flex: 0 0 auto;
+      font-size: 12px;
+      line-height: 1;
+    }}
     .mobile-results {{
       display: none;
     }}
@@ -713,6 +776,20 @@ def _render_page(
       gap: 6px;
       min-width: 0;
     }}
+    .result-card-body {{
+      display: grid;
+      gap: 10px;
+      grid-template-columns: 50px minmax(0, 1fr);
+      min-width: 0;
+    }}
+    .result-card-body.no-poster {{
+      display: block;
+    }}
+    .result-card-content {{
+      display: grid;
+      gap: 8px;
+      min-width: 0;
+    }}
     .result-service {{
       color: var(--muted);
       font-size: 12px;
@@ -726,6 +803,9 @@ def _render_page(
       line-height: 1.3;
       overflow-wrap: anywhere;
       word-break: break-word;
+    }}
+    .result-title .title-link {{
+      font-size: inherit;
     }}
     .result-card .providers {{
       margin-top: 0;
@@ -872,6 +952,26 @@ def _render_page(
         }}
         saveMediaFilter(button.dataset.mediaFilter);
         applyMediaFilter();
+      }});
+
+      document.addEventListener("click", (event) => {{
+        const result = event.target.closest("[data-result-link]");
+        if (!result || event.target.closest("a, button, input, label, summary")) {{
+          return;
+        }}
+        window.open(result.dataset.resultLink, "_blank", "noopener");
+      }});
+
+      document.addEventListener("keydown", (event) => {{
+        if (!["Enter", " "].includes(event.key)) {{
+          return;
+        }}
+        const result = event.target.closest("[data-result-link]");
+        if (!result || event.target.closest("a, button, input, label, summary")) {{
+          return;
+        }}
+        event.preventDefault();
+        window.open(result.dataset.resultLink, "_blank", "noopener");
       }});
 
       function applyResultPreferences() {{
@@ -1178,6 +1278,8 @@ def _results_table(result: ScanRunResult | None, active_provider: str | None = N
                     service=arr_result.kind,
                     media_type=None,
                     title="Servizio disabilitato",
+                    poster_url=None,
+                    arr_url=None,
                     providers_html="-",
                     change_status=None,
                     status="skipped",
@@ -1201,6 +1303,8 @@ def _results_table(result: ScanRunResult | None, active_provider: str | None = N
                     service=arr_result.kind,
                     media_type=None,
                     title="Nessun elemento mancante",
+                    poster_url=None,
+                    arr_url=None,
                     providers_html="-",
                     change_status=None,
                     status="processed",
@@ -1215,11 +1319,12 @@ def _results_table(result: ScanRunResult | None, active_provider: str | None = N
 
             providers = _providers_display(item.providers, item.original_provider_names)
             message = item.message or "-"
+            link_attrs = _result_link_attrs(item.arr_url)
             rows.append(
-                f'<tr data-result-media-type="{escape(item.media_type)}">'
+                f'<tr data-result-media-type="{escape(item.media_type)}"{link_attrs}>'
                 f'<td class="service-cell" data-column="service" hidden>{escape(item.kind)}</td>'
                 f'<td class="media-type-cell" data-column="type">{_media_type_badge(item.media_type)}</td>'
-                f'<td class="title-cell" data-column="title">{escape(item.title)}</td>'
+                f'<td class="title-cell" data-column="title">{_title_with_poster(item.title, item.poster_url, item.arr_url)}</td>'
                 f'<td class="provider-cell" data-column="providers">{providers}</td>'
                 f'<td class="change-cell" data-column="change">{_change_status_badge(item.change_status)}</td>'
                 f'<td class="status-cell" data-column="status"><span class="status {escape(item.status)}">{escape(item.status)}</span></td>'
@@ -1231,6 +1336,8 @@ def _results_table(result: ScanRunResult | None, active_provider: str | None = N
                     service=item.kind,
                     media_type=item.media_type,
                     title=item.title,
+                    poster_url=item.poster_url,
+                    arr_url=item.arr_url,
                     providers_html=providers,
                     change_status=item.change_status,
                     status=item.status,
@@ -1285,11 +1392,55 @@ def _providers_display(canonical_names: list[str], original_names: list[str]) ->
     return display
 
 
+def _title_with_poster(title: str, poster_url: str | None, arr_url: str | None) -> str:
+    return (
+        '<div class="title-with-poster">'
+        f"{_poster_thumbnail(poster_url, title)}"
+        '<span class="title-stack">'
+        f"{_title_link(title, arr_url)}"
+        "</span>"
+        "</div>"
+    )
+
+
+def _poster_thumbnail(poster_url: str | None, title: str) -> str:
+    if not poster_url:
+        return '<span class="poster-thumb poster-placeholder" aria-hidden="true">?</span>'
+    return (
+        f'<img class="poster-thumb" src="{escape(poster_url)}" alt="Poster {escape(title)}" '
+        'loading="lazy" decoding="async" width="50" height="75">'
+    )
+
+
+def _title_link(title: str, arr_url: str | None) -> str:
+    title_html = escape(title)
+    if not arr_url:
+        return f'<span class="title-link">{title_html}</span>'
+
+    return (
+        f'<a class="title-link" href="{escape(arr_url)}" target="_blank" rel="noopener noreferrer" '
+        f'aria-label="Apri {title_html} in Radarr o Sonarr">'
+        f"{title_html}<span class=\"external-link-icon\" aria-hidden=\"true\">&#8599;</span>"
+        "</a>"
+    )
+
+
+def _result_link_attrs(arr_url: str | None) -> str:
+    if not arr_url:
+        return ""
+    return (
+        f' class="result-row-link" data-result-link="{escape(arr_url)}" '
+        'tabindex="0" role="link"'
+    )
+
+
 def _result_card(
     *,
     service: str,
     media_type: str | None,
     title: str,
+    poster_url: str | None,
+    arr_url: str | None,
     providers_html: str,
     change_status: str | None,
     status: str,
@@ -1302,8 +1453,12 @@ def _result_card(
         if message and providers_html == "-"
         else ""
     )
+    link_attrs = _result_link_attrs(arr_url).replace(' class="result-row-link"', ' class="result-card result-row-link"', 1)
+    article_attrs = link_attrs or f' class="result-card"'
+    poster_html = _poster_thumbnail(poster_url, title) if media_type else ""
+    body_class = "result-card-body" if media_type else "result-card-body no-poster"
     return (
-        f'<article class="result-card" data-result-media-type="{escape(media_type or "other")}">'
+        f'<article{article_attrs} data-result-media-type="{escape(media_type or "other")}">'
         '<div class="result-card-header">'
         f'<span class="result-service">{escape(service)}</span>'
         '<span class="result-card-badges">'
@@ -1311,8 +1466,13 @@ def _result_card(
         f'<span class="status {escape(status)}">{escape(status)}</span>'
         "</span>"
         "</div>"
-        f'<div class="result-title">{escape(title)}</div>'
+        f'<div class="{body_class}">'
+        f"{poster_html}"
+        '<div class="result-card-content">'
+        f'<div class="result-title">{_title_link(title, arr_url)}</div>'
         f'<div class="result-providers">{providers_html}{message_html}</div>'
+        "</div>"
+        "</div>"
         "</article>"
     )
 
