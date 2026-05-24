@@ -178,6 +178,24 @@ class ScanResultsUiTest(unittest.TestCase):
         self.assertIn("htmx:afterSwap", html)
         self.assertIn("Test ntfy", html)
 
+    def test_page_has_persistent_theme_toggle(self):
+        html = _render_page(
+            settings=_settings(),
+            config_error=None,
+            scan_error=None,
+            result=_sample_result(),
+            scheduler_status=None,
+            active_provider=None,
+        )
+
+        self.assertIn('data-theme="dark"', html)
+        self.assertIn("watcharr.theme", html)
+        self.assertIn("data-theme-toggle", html)
+        self.assertIn('aria-label="Attiva tema scuro"', html)
+        self.assertIn('color-scheme: dark', html)
+        self.assertIn("--bg: #0f172a", html)
+        self.assertIn("applyTheme(document.documentElement.dataset.theme || loadTheme())", html)
+
     def test_page_has_pwa_metadata(self):
         html = _render_page(
             settings=_settings(),

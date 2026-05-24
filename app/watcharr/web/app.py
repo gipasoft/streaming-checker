@@ -291,20 +291,154 @@ def _render_page(
   <link rel="manifest" href="/manifest.webmanifest">
   <link rel="icon" href="/static/icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="/static/icon.svg">
+  <script>
+    (() => {{
+      const storageKey = "watcharr.theme";
+      const themes = ["light", "dark"];
+      let theme = "light";
+      try {{
+        const stored = localStorage.getItem(storageKey);
+        if (themes.includes(stored)) {{
+          theme = stored;
+        }}
+      }} catch (_error) {{
+        theme = "light";
+      }}
+      document.documentElement.dataset.theme = theme;
+      document.documentElement.style.colorScheme = theme;
+      const themeColor = document.querySelector('meta[name="theme-color"]');
+      if (themeColor) {{
+        themeColor.setAttribute("content", theme === "dark" ? "#0f172a" : "#0f766e");
+      }}
+    }})();
+  </script>
   <script src="https://unpkg.com/htmx.org@2.0.4" defer></script>
   <style>
     :root {{
       color-scheme: light;
       --bg: #f6f7f9;
       --panel: #ffffff;
+      --panel-alt: #f8fafc;
       --line: #d9dee7;
       --text: #1f2937;
       --muted: #64748b;
       --accent: #0f766e;
       --accent-strong: #0b5f59;
+      --button-text: #ffffff;
+      --input-bg: #ffffff;
+      --chip-bg: #eef2f7;
+      --chip-hover: #eef2f7;
+      --chip-active-bg: #ecfdf5;
+      --row-hover: #f8fafc;
+      --code-bg: #eef2f7;
+      --shadow: rgba(15, 23, 42, 0.12);
+      --alert-bg: #fff4f2;
+      --alert-border: #f1b8b1;
+      --scan-bg: #ecfdf5;
+      --scan-border: #99f6e4;
+      --focus-ring: rgba(15, 118, 110, 0.2);
       --danger: #b42318;
       --warning: #a15c07;
       --ok: #0f766e;
+      --badge-movie-bg: #e0f2fe;
+      --badge-movie-text: #075985;
+      --badge-series-bg: #f3e8ff;
+      --badge-series-text: #6b21a8;
+      --change-new-bg: #dcfce7;
+      --change-new-text: #166534;
+      --change-updated-bg: #dbeafe;
+      --change-updated-text: #1d4ed8;
+      --change-unchanged-bg: #e5e7eb;
+      --change-unchanged-text: #374151;
+      --change-removed-bg: #fee2e2;
+      --change-removed-text: #b91c1c;
+      --status-processed-bg: #dff7ee;
+      --status-skipped-bg: #fff0d8;
+      --status-error-bg: #ffe2df;
+      --provider-netflix-bg: #fee2e2;
+      --provider-netflix-border: #fecaca;
+      --provider-netflix-text: #b91c1c;
+      --provider-disney-bg: #dbeafe;
+      --provider-disney-border: #bfdbfe;
+      --provider-disney-text: #1d4ed8;
+      --provider-prime-bg: #e0f2fe;
+      --provider-prime-border: #bae6fd;
+      --provider-prime-text: #0369a1;
+      --provider-apple-bg: #e5e7eb;
+      --provider-apple-border: #d1d5db;
+      --provider-apple-text: #111827;
+      --provider-paramount-bg: #dbeafe;
+      --provider-paramount-border: #bfdbfe;
+      --provider-paramount-text: #1e40af;
+      --provider-raiplay-bg: #dcfce7;
+      --provider-raiplay-border: #bbf7d0;
+      --provider-raiplay-text: #166534;
+      --provider-crunchyroll-bg: #ffedd5;
+      --provider-crunchyroll-border: #fed7aa;
+      --provider-crunchyroll-text: #c2410c;
+    }}
+    :root[data-theme="dark"] {{
+      color-scheme: dark;
+      --bg: #0f172a;
+      --panel: #111827;
+      --panel-alt: #1e293b;
+      --line: #334155;
+      --text: #e5e7eb;
+      --muted: #94a3b8;
+      --accent: #14b8a6;
+      --accent-strong: #5eead4;
+      --button-text: #042f2e;
+      --input-bg: #0b1220;
+      --chip-bg: #1e293b;
+      --chip-hover: #273449;
+      --chip-active-bg: #0f2f2d;
+      --row-hover: #162033;
+      --code-bg: #1e293b;
+      --shadow: rgba(0, 0, 0, 0.35);
+      --alert-bg: #2b1518;
+      --alert-border: #7f1d1d;
+      --scan-bg: #0f2f2d;
+      --scan-border: #0f766e;
+      --focus-ring: rgba(45, 212, 191, 0.28);
+      --danger: #fca5a5;
+      --warning: #fbbf24;
+      --ok: #5eead4;
+      --badge-movie-bg: #0c4a6e;
+      --badge-movie-text: #e0f2fe;
+      --badge-series-bg: #4c1d95;
+      --badge-series-text: #f3e8ff;
+      --change-new-bg: #14532d;
+      --change-new-text: #dcfce7;
+      --change-updated-bg: #1e3a8a;
+      --change-updated-text: #dbeafe;
+      --change-unchanged-bg: #334155;
+      --change-unchanged-text: #e5e7eb;
+      --change-removed-bg: #7f1d1d;
+      --change-removed-text: #fee2e2;
+      --status-processed-bg: #134e4a;
+      --status-skipped-bg: #713f12;
+      --status-error-bg: #7f1d1d;
+      --provider-netflix-bg: #7f1d1d;
+      --provider-netflix-border: #991b1b;
+      --provider-netflix-text: #fee2e2;
+      --provider-disney-bg: #1e3a8a;
+      --provider-disney-border: #2563eb;
+      --provider-disney-text: #dbeafe;
+      --provider-prime-bg: #0c4a6e;
+      --provider-prime-border: #0284c7;
+      --provider-prime-text: #e0f2fe;
+      --provider-apple-bg: #334155;
+      --provider-apple-border: #475569;
+      --provider-apple-text: #f8fafc;
+      --provider-paramount-bg: #1e40af;
+      --provider-paramount-border: #2563eb;
+      --provider-paramount-text: #dbeafe;
+      --provider-raiplay-bg: #14532d;
+      --provider-raiplay-border: #16a34a;
+      --provider-raiplay-text: #dcfce7;
+      --provider-crunchyroll-bg: #7c2d12;
+      --provider-crunchyroll-border: #ea580c;
+      --provider-crunchyroll-text: #ffedd5;
     }}
     * {{ box-sizing: border-box; }}
     body {{
@@ -332,11 +466,18 @@ def _render_page(
     h3 {{ font-size: 15px; margin-bottom: 10px; }}
     .subtle {{ color: var(--muted); margin-top: 6px; }}
     .actions {{ display: flex; gap: 12px; align-items: center; }}
+    .header-actions {{
+      align-items: center;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: flex-end;
+    }}
     button {{
       border: 0;
       border-radius: 6px;
       background: var(--accent);
-      color: white;
+      color: var(--button-text);
       font-weight: 700;
       padding: 10px 16px;
       cursor: pointer;
@@ -361,6 +502,33 @@ def _render_page(
     }}
     button:hover {{ background: var(--accent-strong); }}
     button:disabled {{ opacity: 0.5; cursor: not-allowed; }}
+    button:focus-visible,
+    a:focus-visible,
+    input:focus-visible,
+    summary:focus-visible {{
+      outline: 3px solid var(--focus-ring);
+      outline-offset: 2px;
+    }}
+    .theme-toggle {{
+      align-items: center;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      color: var(--text);
+      display: inline-flex;
+      font-size: 18px;
+      height: 40px;
+      justify-content: center;
+      line-height: 1;
+      padding: 0;
+      width: 40px;
+    }}
+    .theme-toggle:hover {{
+      background: var(--panel-alt);
+    }}
+    .theme-toggle-icon {{
+      display: inline-block;
+      transform: translateY(-1px);
+    }}
     .grid {{
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
@@ -421,7 +589,7 @@ def _render_page(
       max-width: 460px;
     }}
     .result-search input {{
-      background: #ffffff;
+      background: var(--input-bg);
       border: 1px solid var(--line);
       border-radius: 6px;
       color: var(--text);
@@ -432,7 +600,7 @@ def _render_page(
     }}
     .result-search input:focus {{
       border-color: var(--accent);
-      box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.12);
+      box-shadow: 0 0 0 3px var(--focus-ring);
       outline: 0;
     }}
     .quick-filter-bar {{
@@ -446,7 +614,7 @@ def _render_page(
     }}
     .media-filter-button {{
       align-items: center;
-      background: #f8fafc;
+      background: var(--panel-alt);
       border: 1px solid var(--line);
       border-radius: 999px;
       color: var(--muted);
@@ -460,10 +628,10 @@ def _render_page(
       width: auto;
     }}
     .media-filter-button:hover {{
-      background: #eef2f7;
+      background: var(--chip-hover);
     }}
     .media-filter-button.active {{
-      background: #ecfdf5;
+      background: var(--chip-active-bg);
       border-color: var(--accent);
       color: var(--accent-strong);
     }}
@@ -485,16 +653,16 @@ def _render_page(
       align-items: start;
     }}
     .alert {{
-      border: 1px solid #f1b8b1;
-      background: #fff4f2;
+      border: 1px solid var(--alert-border);
+      background: var(--alert-bg);
       color: var(--danger);
       padding: 12px 14px;
       border-radius: 8px;
       margin-bottom: 18px;
     }}
     .scan-banner {{
-      border: 1px solid #99f6e4;
-      background: #ecfdf5;
+      border: 1px solid var(--scan-border);
+      background: var(--scan-bg);
       color: var(--accent-strong);
       display: flex;
       justify-content: space-between;
@@ -579,7 +747,7 @@ def _render_page(
       line-height: 1;
     }}
     code {{
-      background: #eef2f7;
+      background: var(--code-bg);
       border-radius: 4px;
       padding: 2px 5px;
       font-size: 13px;
@@ -616,15 +784,15 @@ def _render_page(
       white-space: nowrap;
       word-break: keep-all;
     }}
-    .badge-movie {{ background: #e0f2fe; color: #075985; }}
-    .badge-series {{ background: #f3e8ff; color: #6b21a8; }}
-    .change-new {{ background: #dcfce7; color: #166534; }}
-    .change-updated {{ background: #dbeafe; color: #1d4ed8; }}
-    .change-unchanged {{ background: #e5e7eb; color: #374151; }}
-    .change-removed {{ background: #fee2e2; color: #b91c1c; }}
-    .processed {{ background: #dff7ee; color: var(--ok); }}
-    .skipped {{ background: #fff0d8; color: var(--warning); }}
-    .error {{ background: #ffe2df; color: var(--danger); }}
+    .badge-movie {{ background: var(--badge-movie-bg); color: var(--badge-movie-text); }}
+    .badge-series {{ background: var(--badge-series-bg); color: var(--badge-series-text); }}
+    .change-new {{ background: var(--change-new-bg); color: var(--change-new-text); }}
+    .change-updated {{ background: var(--change-updated-bg); color: var(--change-updated-text); }}
+    .change-unchanged {{ background: var(--change-unchanged-bg); color: var(--change-unchanged-text); }}
+    .change-removed {{ background: var(--change-removed-bg); color: var(--change-removed-text); }}
+    .processed {{ background: var(--status-processed-bg); color: var(--ok); }}
+    .skipped {{ background: var(--status-skipped-bg); color: var(--warning); }}
+    .error {{ background: var(--status-error-bg); color: var(--danger); }}
     .providers {{
       display: flex;
       flex-wrap: wrap;
@@ -633,7 +801,7 @@ def _render_page(
       min-width: 0;
     }}
     .provider-chip {{
-      background: #eef2f7;
+      background: var(--chip-bg);
       border: 1px solid var(--line);
       border-radius: 999px;
       display: inline-block;
@@ -662,7 +830,7 @@ def _render_page(
     }}
     .column-selector-button {{
       align-items: center;
-      background: #f8fafc;
+      background: var(--panel-alt);
       border: 1px solid var(--line);
       border-radius: 8px;
       color: var(--muted);
@@ -690,7 +858,7 @@ def _render_page(
       background: var(--panel);
       border: 1px solid var(--line);
       border-radius: 8px;
-      box-shadow: 0 12px 30px rgba(15, 23, 42, 0.12);
+      box-shadow: 0 12px 30px var(--shadow);
       display: flex;
       flex-wrap: wrap;
       gap: 8px;
@@ -704,7 +872,7 @@ def _render_page(
     }}
     .column-toggle {{
       align-items: center;
-      background: #f8fafc;
+      background: var(--panel-alt);
       border: 1px solid var(--line);
       border-radius: 999px;
       color: var(--muted);
@@ -721,14 +889,14 @@ def _render_page(
       accent-color: var(--accent);
       margin: 0;
     }}
-    .provider-netflix {{ background: #fee2e2; border-color: #fecaca; color: #b91c1c; }}
-    .provider-disney {{ background: #dbeafe; border-color: #bfdbfe; color: #1d4ed8; }}
-    .provider-prime {{ background: #e0f2fe; border-color: #bae6fd; color: #0369a1; }}
-    .provider-apple {{ background: #e5e7eb; border-color: #d1d5db; color: #111827; }}
-    .provider-paramount {{ background: #dbeafe; border-color: #bfdbfe; color: #1e40af; }}
-    .provider-raiplay {{ background: #dcfce7; border-color: #bbf7d0; color: #166534; }}
-    .provider-crunchyroll {{ background: #ffedd5; border-color: #fed7aa; color: #c2410c; }}
-    .provider-default {{ background: #eef2f7; border-color: var(--line); color: var(--text); }}
+    .provider-netflix {{ background: var(--provider-netflix-bg); border-color: var(--provider-netflix-border); color: var(--provider-netflix-text); }}
+    .provider-disney {{ background: var(--provider-disney-bg); border-color: var(--provider-disney-border); color: var(--provider-disney-text); }}
+    .provider-prime {{ background: var(--provider-prime-bg); border-color: var(--provider-prime-border); color: var(--provider-prime-text); }}
+    .provider-apple {{ background: var(--provider-apple-bg); border-color: var(--provider-apple-border); color: var(--provider-apple-text); }}
+    .provider-paramount {{ background: var(--provider-paramount-bg); border-color: var(--provider-paramount-border); color: var(--provider-paramount-text); }}
+    .provider-raiplay {{ background: var(--provider-raiplay-bg); border-color: var(--provider-raiplay-border); color: var(--provider-raiplay-text); }}
+    .provider-crunchyroll {{ background: var(--provider-crunchyroll-bg); border-color: var(--provider-crunchyroll-border); color: var(--provider-crunchyroll-text); }}
+    .provider-default {{ background: var(--chip-bg); border-color: var(--line); color: var(--text); }}
     .service-cell {{
       overflow-wrap: normal;
       white-space: nowrap;
@@ -740,7 +908,7 @@ def _render_page(
       transition: background-color 120ms ease;
     }}
     .result-row-link:hover {{
-      background: #f8fafc;
+      background: var(--row-hover);
     }}
     .title-with-poster {{
       align-items: center;
@@ -751,7 +919,7 @@ def _render_page(
     }}
     .poster-thumb {{
       aspect-ratio: 2 / 3;
-      background: #eef2f7;
+      background: var(--chip-bg);
       border: 1px solid var(--line);
       border-radius: 4px;
       color: var(--muted);
@@ -928,6 +1096,7 @@ def _render_page(
       .grid {{ grid-template-columns: repeat(2, minmax(0, 1fr)); }}
       .scheduler-strip {{ grid-template-columns: repeat(2, minmax(0, 1fr)); }}
       .actions {{ justify-content: start; }}
+      .header-actions {{ justify-content: start; }}
       .result-search {{ max-width: none; }}
       .desktop-results {{ display: none; }}
       .mobile-results {{ display: grid; gap: 0; }}
@@ -939,6 +1108,7 @@ def _render_page(
       header {{ gap: 14px; }}
       .scan-banner {{ align-items: flex-start; flex-direction: column; }}
       button {{ width: 100%; }}
+      .theme-toggle {{ width: 40px; }}
       .actions {{ width: 100%; }}
       .result-search {{ flex-direction: column; }}
       .filter-bar {{ max-width: 100%; overflow: hidden; }}
@@ -954,6 +1124,8 @@ def _render_page(
   </main>
   <script>
     (() => {{
+      const themeStorageKey = "watcharr.theme";
+      const themes = ["light", "dark"];
       const storageKey = "watcharr.results.columns";
       const mediaFilterKey = "watcharr.results.mediaFilter";
       const defaults = {{
@@ -965,6 +1137,48 @@ def _render_page(
         status: true,
         message: true,
       }};
+
+      function loadTheme() {{
+        try {{
+          const stored = localStorage.getItem(themeStorageKey);
+          return themes.includes(stored) ? stored : "light";
+        }} catch (_error) {{
+          return "light";
+        }}
+      }}
+
+      function saveTheme(theme) {{
+        try {{
+          localStorage.setItem(themeStorageKey, theme);
+        }} catch (_error) {{
+          return;
+        }}
+      }}
+
+      function applyTheme(theme, persist = false) {{
+        const nextTheme = themes.includes(theme) ? theme : "light";
+        document.documentElement.dataset.theme = nextTheme;
+        document.documentElement.style.colorScheme = nextTheme;
+        const themeColor = document.querySelector('meta[name="theme-color"]');
+        if (themeColor) {{
+          themeColor.setAttribute("content", nextTheme === "dark" ? "#0f172a" : "#0f766e");
+        }}
+        if (persist) {{
+          saveTheme(nextTheme);
+        }}
+        applyThemeControls(nextTheme);
+      }}
+
+      function applyThemeControls(theme = document.documentElement.dataset.theme || "light") {{
+        document.querySelectorAll("[data-theme-toggle]").forEach((button) => {{
+          const dark = theme === "dark";
+          button.setAttribute("aria-label", dark ? "Attiva tema chiaro" : "Attiva tema scuro");
+          const icon = button.querySelector(".theme-toggle-icon");
+          if (icon) {{
+            icon.textContent = dark ? "☀" : "☾";
+          }}
+        }});
+      }}
 
       function loadColumns() {{
         try {{
@@ -1025,6 +1239,15 @@ def _render_page(
       }});
 
       document.addEventListener("click", (event) => {{
+        const toggle = event.target.closest("[data-theme-toggle]");
+        if (!toggle) {{
+          return;
+        }}
+        const currentTheme = document.documentElement.dataset.theme || loadTheme();
+        applyTheme(currentTheme === "dark" ? "light" : "dark", true);
+      }});
+
+      document.addEventListener("click", (event) => {{
         const button = event.target.closest("[data-media-filter]");
         if (!button) {{
           return;
@@ -1054,6 +1277,7 @@ def _render_page(
       }});
 
       function applyResultPreferences() {{
+        applyTheme(document.documentElement.dataset.theme || loadTheme());
         applyColumns();
         applyMediaFilter();
       }}
@@ -1104,9 +1328,14 @@ def _dashboard_content(
           <h1>Watcharr</h1>
           <p class="subtle">{_last_scan_text(result)}</p>
         </div>
-        <form class="actions" method="post" action="{scan_url_attr}" hx-post="{scan_url_attr}" hx-target="#dashboard-content" hx-swap="outerHTML" hx-disabled-elt="button">
-          <button type="submit" class="{loading_class.strip()}" {disabled}><span class="spinner" aria-hidden="true"></span>{button_text}</button>
-        </form>
+        <div class="header-actions">
+          <button class="theme-toggle" type="button" aria-label="Attiva tema scuro" data-theme-toggle>
+            <span class="theme-toggle-icon" aria-hidden="true">☾</span>
+          </button>
+          <form class="actions" method="post" action="{scan_url_attr}" hx-post="{scan_url_attr}" hx-target="#dashboard-content" hx-swap="outerHTML" hx-disabled-elt="button">
+            <button type="submit" class="{loading_class.strip()}" {disabled}><span class="spinner" aria-hidden="true"></span>{button_text}</button>
+          </form>
+        </div>
       </header>
 
       {_alert(config_error, "Configurazione non valida")}
