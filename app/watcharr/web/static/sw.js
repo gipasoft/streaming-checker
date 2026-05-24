@@ -1,6 +1,5 @@
-const CACHE_NAME = "watcharr-shell-v1";
+const CACHE_NAME = "watcharr-shell-v2";
 const SHELL_ASSETS = [
-  "/",
   "/manifest.webmanifest",
   "/static/icon.svg",
   "/static/icon-maskable.svg"
@@ -29,7 +28,13 @@ self.addEventListener("fetch", (event) => {
 
   if (event.request.mode === "navigate") {
     event.respondWith(
-      fetch(event.request).catch(() => caches.match("/"))
+      fetch(event.request).catch(
+        () =>
+          new Response("Watcharr is offline. Reconnect to refresh scan results.", {
+            headers: { "Content-Type": "text/plain; charset=utf-8" },
+            status: 503
+          })
+      )
     );
     return;
   }

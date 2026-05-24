@@ -1,5 +1,6 @@
 import sys
 import unittest
+import importlib
 import json
 from pathlib import Path
 
@@ -8,7 +9,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "app"))
 from datetime import UTC, datetime
 
 from watcharr.services.runner import ArrScanResult, ScanItemResult, ScanRunResult
-from watcharr.services.scheduler import SchedulerStatus
+from watcharr.services.scheduler import ScanExecution, SchedulerStatus
 from watcharr.web.app import (
     _change_status_badge,
     _column_selector,
@@ -21,12 +22,15 @@ from watcharr.web.app import (
     _provider_filter_bar,
     _provider_statistics,
     _providers_display,
+    _record_scan_execution,
     _resolve_provider_filter,
     _render_page,
     _results_section,
     _results_table,
     _sorted_statistics,
 )
+
+web_app_module = importlib.import_module("watcharr.web.app")
 
 
 class ScanResultsUiTest(unittest.TestCase):
@@ -221,6 +225,14 @@ class ScanResultsUiTest(unittest.TestCase):
         self.assertEqual(manifest["start_url"], "/")
         self.assertTrue(any(icon["purpose"] == "maskable" for icon in manifest["icons"]))
 
+    def test_service_worker_does_not_cache_dynamic_dashboard(self):
+        sw_path = Path(__file__).resolve().parents[1] / "app" / "watcharr" / "web" / "static" / "sw.js"
+        sw = sw_path.read_text(encoding="utf-8")
+
+        self.assertNotIn('"/",', sw)
+        self.assertIn("fetch(event.request).catch", sw)
+        self.assertIn("Watcharr is offline", sw)
+
     def test_ntfy_test_notice_renders_success_and_failure(self):
         self.assertIn("Test ntfy inviato", _ntfy_test_notice((True, "sent")))
         self.assertIn("Test ntfy fallito", _ntfy_test_notice((False, "failed")))
@@ -325,6 +337,21 @@ class ScanResultsUiTest(unittest.TestCase):
 
         self.assertIn("provider-stats-scroll", html)
         self.assertLess(html.index("Amazon Prime Video"), html.index("Netflix"))
+
+    def test_failed_scan_clears_stale_last_result(self):
+        previous_result = web_app_module._last_result
+        previous_error = web_app_module._last_error
+        try:
+            web_app_module._last_result = _sample_result()
+            web_app_module._last_error = None
+
+            _record_scan_execution(ScanExecution(started=True, error="boom"))
+
+            self.assertIsNone(web_app_module._last_result)
+            self.assertEqual(web_app_module._last_error, "boom")
+        finally:
+            web_app_module._last_result = previous_result
+            web_app_module._last_error = previous_error
 
 
 def _sample_result():

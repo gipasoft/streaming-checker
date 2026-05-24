@@ -79,6 +79,27 @@ class SQLiteStorageTest(unittest.TestCase):
             self.assertEqual(removed.removed_providers, ["Netflix"])
             self.assertEqual(removed.status, "REMOVED")
 
+    def test_prunes_availability_cache_for_missing_items_no_longer_seen(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            db_path = str(Path(tmpdir) / "watcharr.sqlite")
+            storage = SQLiteStorage(db_path)
+            first = ArrItem(id=10, title="Movie", tmdb_id=100, tvdb_id=None, tags=[], raw={})
+            second = ArrItem(id=20, title="Deleted Movie", tmdb_id=200, tvdb_id=None, tags=[], raw={})
+            series = ArrItem(id=30, title="Series", tmdb_id=None, tvdb_id=300, tags=[], raw={})
+
+            storage.record_availability("radarr", first, ["Netflix"])
+            storage.record_availability("radarr", second, ["Prime Video"])
+            storage.record_availability("sonarr", series, ["Disney+"])
+
+            self.assertEqual(storage.prune_availability("radarr", {10}), 1)
+
+            with closing(sqlite3.connect(db_path)) as conn:
+                rows = conn.execute(
+                    "SELECT media_key FROM availability_cache ORDER BY media_key"
+                ).fetchall()
+
+            self.assertEqual([row[0] for row in rows], ["radarr:10", "sonarr:30"])
+
     def test_initializes_expected_tables(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             db_path = str(Path(tmpdir) / "watcharr.sqlite")

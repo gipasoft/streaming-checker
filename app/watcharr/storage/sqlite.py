@@ -195,6 +195,24 @@ class SQLiteStorage:
             )
             return int(cursor.lastrowid)
 
+    def prune_availability(self, kind: str, active_media_ids: list[int] | set[int]) -> int:
+        active_ids = {int(media_id) for media_id in active_media_ids}
+        with closing(self._connect()) as conn, conn:
+            if not active_ids:
+                cursor = conn.execute("DELETE FROM availability_cache WHERE kind = ?", (kind,))
+                return cursor.rowcount
+
+            placeholders = ",".join("?" for _ in active_ids)
+            cursor = conn.execute(
+                f"""
+                DELETE FROM availability_cache
+                WHERE kind = ?
+                  AND media_id NOT IN ({placeholders})
+                """,
+                (kind, *sorted(active_ids)),
+            )
+            return cursor.rowcount
+
     def notification_count(self) -> int:
         with closing(self._connect()) as conn:
             return int(conn.execute("SELECT COUNT(*) FROM notification_history").fetchone()[0])

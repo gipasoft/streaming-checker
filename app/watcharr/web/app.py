@@ -21,6 +21,7 @@ from watcharr.storage import initialize_storage_from_environment
 app = FastAPI(title="Watcharr")
 STATIC_DIR = Path(__file__).resolve().parent / "static"
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+NO_STORE_HEADERS = {"Cache-Control": "no-store"}
 
 _state_lock = Lock()
 _last_result: ScanRunResult | None = None
@@ -120,7 +121,7 @@ def home(request: Request, provider: str | None = None, q: str | None = None, so
     results_section = _results_section(result, active_provider, search_query, active_sort)
 
     if request.headers.get("HX-Request"):
-        return HTMLResponse(results_section)
+        return HTMLResponse(results_section, headers=NO_STORE_HEADERS)
 
     return HTMLResponse(
         _render_page(
@@ -133,7 +134,8 @@ def home(request: Request, provider: str | None = None, q: str | None = None, so
             active_provider=active_provider,
             search_query=search_query,
             active_sort=active_sort,
-        )
+        ),
+        headers=NO_STORE_HEADERS,
     )
 
 
@@ -146,7 +148,7 @@ def trigger_scan(request: Request, provider: str | None = None, q: str | None = 
         with _state_lock:
             _last_error = "scheduler unavailable"
         if request.headers.get("HX-Request"):
-            return HTMLResponse(_dashboard_content_for_query(provider, q, sort))
+            return HTMLResponse(_dashboard_content_for_query(provider, q, sort), headers=NO_STORE_HEADERS)
         return RedirectResponse("/", status_code=303)
 
     execution = service.start_manual_scan()
@@ -155,14 +157,14 @@ def trigger_scan(request: Request, provider: str | None = None, q: str | None = 
             _last_error = None
 
     if request.headers.get("HX-Request"):
-        return HTMLResponse(_dashboard_content_for_query(provider, q, sort))
+        return HTMLResponse(_dashboard_content_for_query(provider, q, sort), headers=NO_STORE_HEADERS)
 
     return RedirectResponse("/", status_code=303)
 
 
 @app.get("/scan/status", response_class=HTMLResponse)
 def scan_status(provider: str | None = None, q: str | None = None, sort: str | None = None):
-    return HTMLResponse(_dashboard_content_for_query(provider, q, sort))
+    return HTMLResponse(_dashboard_content_for_query(provider, q, sort), headers=NO_STORE_HEADERS)
 
 
 @app.post("/ntfy/test")
@@ -182,7 +184,7 @@ def test_ntfy(request: Request, provider: str | None = None, q: str | None = Non
         _last_ntfy_test = (False, f"ntfy test failed: {exc}")
 
     if request.headers.get("HX-Request"):
-        return HTMLResponse(_dashboard_content_for_query(provider, q, sort))
+        return HTMLResponse(_dashboard_content_for_query(provider, q, sort), headers=NO_STORE_HEADERS)
 
     return RedirectResponse("/", status_code=303)
 
@@ -246,6 +248,7 @@ def _record_scan_execution(execution: ScanExecution):
         elif execution.skipped_reason:
             _last_error = execution.skipped_reason
         elif execution.error:
+            _last_result = None
             _last_error = execution.error
 
 

@@ -214,6 +214,9 @@ class ScanRunner:
         for item in items:
             item_results.append(self._process_item(client, scanner, tagger, item))
 
+        if self.storage:
+            self.storage.prune_availability(client.kind, {item.id for item in items})
+
         return ArrScanResult(
             kind=client.kind,
             enabled=True,
